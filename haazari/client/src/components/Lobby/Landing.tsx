@@ -1,0 +1,93 @@
+import { useState } from 'react';
+import { useGame } from '../../lib/GameStore';
+import { PeacockMotif } from '../PeacockMotif';
+import { AvatarPicker } from './AvatarPicker';
+import { TablesBrowser } from './TablesBrowser';
+import { AVATAR_OPTIONS } from '../../game/avatars';
+import './Lobby.css';
+
+type Mode = 'name' | 'menu' | 'create' | 'join' | 'browse';
+
+export function Landing() {
+  const { createRoom, joinRoom, roomError } = useGame();
+  const [mode, setMode] = useState<Mode>('name');
+  const [name, setName] = useState('');
+  const [avatar, setAvatar] = useState<string>(AVATAR_OPTIONS[0]);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function handleCreate() {
+    setBusy(true);
+    await createRoom(name.trim(), avatar);
+    setBusy(false);
+  }
+
+  async function handleJoin(roomCode?: string) {
+    const target = (roomCode ?? code).trim();
+    if (!target) return;
+    setBusy(true);
+    await joinRoom(target, name.trim(), avatar);
+    setBusy(false);
+  }
+
+  return (
+    <div className="landing">
+      <PeacockMotif />
+      <h1 className="wordmark landing__title">Haazari</h1>
+      <p className="text-muted landing__tagline">A four-player card game of sets and strategy</p>
+
+      {mode === 'name' && (
+        <div className="landing__form panel">
+          <label className="landing__field">
+            <span>Your name</span>
+            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Enter your name" />
+          </label>
+          <div className="landing__field">
+            <span>Choose an avatar</span>
+            <AvatarPicker value={avatar} onChange={setAvatar} />
+          </div>
+          <button className="btn btn-primary" disabled={!name.trim()} onClick={() => setMode('menu')}>
+            Continue
+          </button>
+        </div>
+      )}
+
+      {mode === 'menu' && (
+        <div className="landing__actions">
+          <button className="btn btn-primary" disabled={busy} onClick={handleCreate}>
+            Create Game
+          </button>
+          <button className="btn" onClick={() => setMode('join')}>Join by Code</button>
+          <button className="btn" onClick={() => setMode('browse')}>Browse Tables</button>
+          <button className="btn btn-ghost" onClick={() => setMode('name')}>Change name / avatar</button>
+          {roomError && <div className="error-text">{roomError}</div>}
+        </div>
+      )}
+
+      {mode === 'join' && (
+        <div className="landing__form panel">
+          <label className="landing__field">
+            <span>Room code</span>
+            <input
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              maxLength={8}
+              placeholder="HZR482"
+            />
+          </label>
+          {roomError && <div className="error-text">{roomError}</div>}
+          <div className="landing__form-actions">
+            <button className="btn btn-ghost" onClick={() => setMode('menu')}>Back</button>
+            <button className="btn btn-primary" disabled={busy || !code.trim()} onClick={() => handleJoin()}>
+              Join
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'browse' && (
+        <TablesBrowser onJoin={(roomCode) => handleJoin(roomCode)} onBack={() => setMode('menu')} busy={busy} error={roomError} />
+      )}
+    </div>
+  );
+}

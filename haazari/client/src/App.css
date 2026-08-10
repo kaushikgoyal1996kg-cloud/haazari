@@ -1,0 +1,38 @@
+.app-root {
+  min-height: 100vh;
+  position: relative;
+}
+
+.waiting-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+}
+
+.conn-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--ruby-500);
+  color: var(--ivory-100);
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 4px;
+  z-index: 100;
+}
+
+.rules-fab {
+  position: fixed;
+  top: env(safe-area-inset-top, 10px);
+  right: 10px;
+  z-index: 30;
+  min-height: 36px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+}

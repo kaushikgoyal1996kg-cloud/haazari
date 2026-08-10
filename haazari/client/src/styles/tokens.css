@@ -1,0 +1,53 @@
+:root {
+  /* ---- Color: deep felt green table + antique brass gold ---- */
+  --felt-900: #06231a;
+  --felt-800: #0a2e21;
+  --felt-700: #0e3d2c;
+  --felt-600: #145339;
+  --felt-500: #1c6b48;
+
+  --gold-700: #8a6d1a;
+  --gold-500: #c9a227;
+  --gold-300: #e8cb6b;
+  --gold-100: #f6e9bd;
+
+  --ivory-100: #f3edd9;
+  --ivory-200: #e6ddc0;
+  --ink-900: #0a0a0a;
+  --ink-700: #262220;
+
+  --ruby-500: #a6303b;
+  --ruby-300: #d0616a;
+  --sapphire-500: #2b4c6f;
+
+  --success-500: #3f8a5c;
+
+  /* ---- Type ---- */
+  --font-display: 'Cinzel', 'Georgia', serif;
+  --font-body: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ---- Spacing / radius ---- */
+  --radius-card: 10px;
+  --radius-panel: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-med: 320ms;
+  --dur-slow: 600ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-med: 0ms;
+    --dur-slow: 0ms;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
