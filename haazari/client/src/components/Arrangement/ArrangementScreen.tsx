@@ -13,6 +13,7 @@ import {
 } from '../../game/handClassification';
 import './Arrangement.css';
 import { playSelectSound } from '../../lib/sound';
+import { hapticLight } from '../../lib/haptics';
 
 type Location = 'pool' | 0 | 1 | 2 | 3;
 interface Selected {
@@ -104,6 +105,7 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError, cum
 
   function handleCardTap(location: Location, card: Card) {
     playSelectSound();
+    hapticLight();
     setJustDealt(false); // cards are being handled now - stop the deal-in animation
     if (!selected) {
       setSelected({ location, cardId: card.id });
@@ -270,8 +272,19 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError, cum
 
       {dismissEligible.length > 0 && (
         <div className="arrange-dismiss panel">
-          <p>Your hand qualifies for dismissal ({dismissEligible.join(', ').toLowerCase().replace('_', ' ')}). Dismissing voids this round for all players — everyone scores 0, and the deal passes to the next dealer.</p>
-          <button className="btn" onClick={() => onDismiss(dismissEligible[0])}>
+          <p className="arrange-dismiss__reason">
+            {dismissEligible.includes('NO_SEQUENCE') && dismissEligible.includes('SIX_PAIRS')
+              ? 'Your hand has no possible sequence AND holds six pairs.'
+              : dismissEligible.includes('NO_SEQUENCE')
+                ? 'Your hand has no possible sequence anywhere in it.'
+                : 'Your hand holds six pairs.'}
+          </p>
+          <p>
+            You can dismiss instead of playing this hand. Dismissing voids this round for{' '}
+            <strong>all four players</strong> — everyone scores 0 for it, and the deal simply passes to the next
+            dealer.
+          </p>
+          <button className="btn" onClick={() => { onDismiss(dismissEligible[0]); }}>
             Dismiss Hand
           </button>
         </div>

@@ -273,3 +273,27 @@
 .room-lobby__hint {
   font-size: 0.85rem;
 }
+
+.landing__invite-note {
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid var(--gold-500);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  margin: 0 0 4px;
+}
+
+.room-lobby__share-btn {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.room-lobby__share-copied {
+  font-size: 0.75rem;
+  animation: room-lobby-fade-in 200ms ease-out;
+}
+
+@keyframes room-lobby-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

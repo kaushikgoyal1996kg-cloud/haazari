@@ -1,4 +1,4 @@
-import { AVATAR_OPTIONS } from '../../game/avatars';
+import { AVATAR_OPTIONS, AVATAR_NAMES } from '../../game/avatars';
 import './Lobby.css';
 
 interface Props {
@@ -15,6 +15,7 @@ export function AvatarPicker({ value, onChange }: Props) {
           type="button"
           role="radio"
           aria-checked={value === a}
+          aria-label={AVATAR_NAMES[a] ?? 'Avatar'}
           className={`avatar-picker__option ${value === a ? 'avatar-picker__option--selected' : ''}`}
           onClick={() => onChange(a)}
         >

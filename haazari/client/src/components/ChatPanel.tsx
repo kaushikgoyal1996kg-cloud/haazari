@@ -188,7 +188,12 @@ export function ChatPanel() {
 
           <div className="chat-panel__reactions">
             {QUICK_REACTIONS.map((emoji) => (
-              <button key={emoji} className="chat-reaction-btn" onClick={() => sendChat(emoji, 'emoji')}>
+              <button
+                key={emoji}
+                className="chat-reaction-btn"
+                onClick={() => sendChat(emoji, 'emoji')}
+                aria-label={`Send ${emoji} reaction`}
+              >
                 {emoji}
               </button>
             ))}

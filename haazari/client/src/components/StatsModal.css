@@ -43,3 +43,43 @@
   text-align: left;
   font-weight: 600;
 }
+
+.round-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.round-history-row {
+  background: rgba(10, 46, 33, 0.5);
+  border: 1px solid rgba(230, 221, 192, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.round-history-row__header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.round-history-row__dismissed {
+  color: var(--ruby-300);
+  font-weight: 400;
+}
+
+.round-history-row__scores {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.round-history-row__player {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}

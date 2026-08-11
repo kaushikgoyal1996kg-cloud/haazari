@@ -188,6 +188,11 @@
   color: var(--ivory-200);
 }
 
+.arrange-dismiss__reason {
+  color: var(--gold-300) !important;
+  font-weight: 600;
+}
+
 .arrange-endgame-hint {
   font-size: 0.78rem;
   text-align: center;

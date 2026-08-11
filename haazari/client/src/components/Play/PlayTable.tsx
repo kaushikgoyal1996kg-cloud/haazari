@@ -3,6 +3,7 @@ import { useGame } from '../../lib/GameStore';
 import { PlayingCard, CardBack } from '../Card';
 import { AvatarBadge } from '../Lobby/AvatarPicker';
 import { playCardPlaySound, playRevealSound, playPointsSound } from '../../lib/sound';
+import { hapticMedium } from '../../lib/haptics';
 import { classifySet, labelFor, setValue } from '../../game/handClassification';
 import { useWakeLock } from '../../lib/useWakeLock';
 import type { PlayerId } from '../../game/types';
@@ -146,7 +147,7 @@ export function PlayTable() {
         </div>
 
         {isMyTurn && myCurrentSetCards && (
-          <button className="btn btn-primary play-btn" onClick={() => { playCardPlaySound(); playSet(); }}>
+          <button className="btn btn-primary play-btn" onClick={() => { playCardPlaySound(); hapticMedium(); playSet(); }}>
             Play {SET_LABELS[currentSetIdx]} ({setValue(myCurrentSetCards)} pts)
           </button>
         )}

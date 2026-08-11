@@ -1,6 +1,7 @@
 import { useGame } from '../../lib/GameStore';
 import { PeacockMotif } from '../PeacockMotif';
 import { AvatarBadge } from '../Lobby/AvatarPicker';
+import { Confetti } from '../Confetti';
 import './Play.css';
 
 export function WinnerScreen() {
@@ -16,6 +17,7 @@ export function WinnerScreen() {
 
   return (
     <div className="reveal-overlay">
+      <Confetti />
       <div className="reveal-panel panel" style={{ maxWidth: 380 }}>
         <PeacockMotif size={56} />
         <div className="wordmark" style={{ fontSize: '0.9rem', opacity: 0.8 }}>

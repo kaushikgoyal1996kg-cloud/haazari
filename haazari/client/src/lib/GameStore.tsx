@@ -12,6 +12,7 @@ import type {
 } from '../game/types';
 import { DEFAULT_AVATAR } from '../game/avatars';
 import { playDealSound, playChatSound, playErrorSound, playRoundCompleteSound, playVictorySound } from './sound';
+import { hapticMedium, hapticError, hapticSuccess, hapticVictory } from './haptics';
 import { recordGameResult, getAllStats, type PlayerStats } from './stats';
 import { friendlyGameError } from './errorMessages';
 
@@ -25,6 +26,7 @@ interface StoredSession {
 
 interface GameContextValue {
   connectionStatus: 'connecting' | 'connected' | 'disconnected';
+  hasConnectedOnce: boolean;
   room: PublicRoomInfo | null;
   myPlayerId: string | null;
   myName: string;
@@ -32,6 +34,7 @@ interface GameContextValue {
   myArrangedSets: FourSets | null;
   gameState: HaazariPublicStatePayload | null;
   lastRoundResult: RoundResult | null;
+  roundHistory: RoundResult[];
   winnerInfo: { winnerId: string; finalScores: Record<string, number> } | null;
   roomError: string | null;
   gameError: string | null;
@@ -66,6 +69,7 @@ const GameContext = createContext<GameContextValue | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const socketRef = useRef(getSocket());
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [hasConnectedOnce, setHasConnectedOnce] = useState(false);
   const [room, setRoom] = useState<PublicRoomInfo | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [myName, setMyName] = useState<string>('');
@@ -88,6 +92,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [myArrangedSets, setMyArrangedSets] = useState<FourSets | null>(null);
   const [gameState, setGameState] = useState<HaazariPublicStatePayload | null>(null);
   const [lastRoundResult, setLastRoundResult] = useState<RoundResult | null>(null);
+  const [roundHistory, setRoundHistory] = useState<RoundResult[]>([]);
   const [winnerInfo, setWinnerInfo] = useState<{ winnerId: string; finalScores: Record<string, number> } | null>(null);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [gameError, setGameError] = useState<string | null>(null);
@@ -100,6 +105,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     const onConnect = () => {
       setConnectionStatus('connected');
+      setHasConnectedOnce(true);
       const stored = readSession();
       if (stored) {
         socket.emit('room:reconnect', { token: stored.token }, (res: RoomAck) => {
@@ -124,6 +130,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setWinnerInfo(null);
           setMyHand([]);
           setMyArrangedSets(null);
+          setRoundHistory([]);
         }
         return r;
       });
@@ -140,14 +147,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const players = roomRef.current?.players ?? [];
       setGameError(friendlyGameError(message, players, myPlayerIdRef.current));
       playErrorSound();
+      hapticError();
     };
     const onRoundComplete = ({ result }: { result: RoundResult }) => {
       setLastRoundResult(result);
+      setRoundHistory((prev) => [...prev, result]);
       playRoundCompleteSound();
+      hapticSuccess();
     };
     const onGameOver = (payload: { winnerId: string; finalScores: Record<string, number> }) => {
       setWinnerInfo(payload);
       playVictorySound();
+      hapticVictory();
       const pid = myPlayerIdRef.current;
       const name = myNameRef.current;
       if (pid && name) {
@@ -329,6 +340,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const value: GameContextValue = {
     connectionStatus,
+    hasConnectedOnce,
     room,
     myPlayerId,
     myName,
@@ -336,6 +348,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     myArrangedSets,
     gameState,
     lastRoundResult,
+    roundHistory,
     winnerInfo,
     roomError,
     gameError,

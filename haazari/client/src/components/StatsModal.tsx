@@ -15,7 +15,7 @@ export function StatsModal({ onClose }: Props) {
       <div className="rules-panel panel" onClick={(e) => e.stopPropagation()}>
         <div className="rules-panel__header">
           <h2>Your Stats</h2>
-          <button className="rules-close btn btn-ghost" onClick={onClose}>✕</button>
+          <button className="rules-close btn btn-ghost" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <p className="text-muted stats-modal__note">

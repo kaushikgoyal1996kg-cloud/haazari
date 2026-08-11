@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGame } from '../../lib/GameStore';
 import { PeacockMotif } from '../PeacockMotif';
 import { InstallBanner } from '../InstallBanner';
@@ -9,13 +9,28 @@ import './Lobby.css';
 
 type Mode = 'name' | 'menu' | 'create' | 'join' | 'browse';
 
+function codeFromShareLink(): string {
+  const params = new URLSearchParams(window.location.search);
+  return (params.get('join') ?? '').toUpperCase();
+}
+
 export function Landing() {
   const { createRoom, joinRoom, quickMatch, roomError } = useGame();
   const [mode, setMode] = useState<Mode>('name');
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string>(AVATAR_OPTIONS[0]);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(codeFromShareLink);
   const [busy, setBusy] = useState(false);
+  const sharedInvite = !!code;
+
+  // Clean the ?join=... param out of the URL once we've read it, so it
+  // doesn't linger if the user later shares/bookmarks this tab themselves.
+  useEffect(() => {
+    if (sharedInvite && window.history.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleCreate() {
     setBusy(true);
@@ -46,6 +61,11 @@ export function Landing() {
 
       {mode === 'name' && (
         <div className="landing__form panel">
+          {sharedInvite && (
+            <p className="landing__invite-note">
+              🎉 You've been invited to room <strong>{code}</strong>!
+            </p>
+          )}
           <label className="landing__field">
             <span>Your name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Enter your name" />
@@ -54,8 +74,12 @@ export function Landing() {
             <span>Choose an avatar</span>
             <AvatarPicker value={avatar} onChange={setAvatar} />
           </div>
-          <button className="btn btn-primary" disabled={!name.trim()} onClick={() => setMode('menu')}>
-            Continue
+          <button
+            className="btn btn-primary"
+            disabled={!name.trim()}
+            onClick={() => setMode(sharedInvite ? 'join' : 'menu')}
+          >
+            {sharedInvite ? 'Join Room' : 'Continue'}
           </button>
         </div>
       )}

@@ -8,10 +8,12 @@ interface Props {
   onClose: () => void;
   onOpenRules: () => void;
   onOpenStats: () => void;
+  onOpenTutorial: () => void;
+  onOpenRoundHistory: () => void;
   onLeaveTable?: () => void;
 }
 
-export function SettingsModal({ onClose, onOpenRules, onOpenStats, onLeaveTable }: Props) {
+export function SettingsModal({ onClose, onOpenRules, onOpenStats, onOpenTutorial, onOpenRoundHistory, onLeaveTable }: Props) {
   const { goToHomeScreen, room } = useGame();
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const { canPromptInstall, installed, isIos, promptInstall } = useInstallPrompt();
@@ -28,7 +30,7 @@ export function SettingsModal({ onClose, onOpenRules, onOpenStats, onLeaveTable 
       <div className="rules-panel panel" onClick={(e) => e.stopPropagation()}>
         <div className="rules-panel__header">
           <h2>Settings</h2>
-          <button className="rules-close btn btn-ghost" onClick={onClose}>✕</button>
+          <button className="rules-close btn btn-ghost" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <div className="settings-list">
@@ -70,12 +72,36 @@ export function SettingsModal({ onClose, onOpenRules, onOpenStats, onLeaveTable 
             className="settings-row"
             onClick={() => {
               onClose();
+              onOpenTutorial();
+            }}
+          >
+            <span>How to Play (tutorial)</span>
+            <span className="text-muted">›</span>
+          </button>
+
+          <button
+            className="settings-row"
+            onClick={() => {
+              onClose();
               onOpenStats();
             }}
           >
             <span>Your Stats</span>
             <span className="text-muted">›</span>
           </button>
+
+          {room && (
+            <button
+              className="settings-row"
+              onClick={() => {
+                onClose();
+                onOpenRoundHistory();
+              }}
+            >
+              <span>Round History</span>
+              <span className="text-muted">›</span>
+            </button>
+          )}
 
           {room && (
             <button

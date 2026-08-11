@@ -1,15 +1,37 @@
+import { useState } from 'react';
 import { useGame } from '../../lib/GameStore';
 import { AvatarBadge } from './AvatarPicker';
 import './Lobby.css';
 
 export function RoomLobby() {
   const { room, myPlayerId, setReady, startGame, addBot, leaveSession } = useGame();
+  const [shareCopied, setShareCopied] = useState(false);
   if (!room) return null;
 
   const me = room.players.find((p) => p.playerId === myPlayerId);
   const isHost = me?.isHost ?? false;
   const openSeats = 4 - room.players.length;
   const allReady = room.players.length === 4 && room.players.every((p) => p.ready);
+
+  async function handleShare() {
+    const url = `${window.location.origin}${window.location.pathname}?join=${room!.roomCode}`;
+    const text = `Play Haazari with me! Join room ${room!.roomCode}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Haazari', text, url });
+      } catch {
+        // User cancelled the share sheet - not an error, do nothing.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} — ${url}`);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      // Clipboard unavailable - the room code is already visible on screen either way.
+    }
+  }
 
   return (
     <div className="room-lobby">
@@ -19,6 +41,10 @@ export function RoomLobby() {
         <span className="text-muted">Room Code</span>
         <div className="room-lobby__code-value">{room.roomCode}</div>
         <span className="text-muted">Share this code with 3 friends</span>
+        <button className="btn btn-primary room-lobby__share-btn" onClick={handleShare}>
+          📤 Share Invite
+        </button>
+        {shareCopied && <span className="room-lobby__share-copied text-muted">Link copied!</span>}
       </div>
 
       <div className="room-lobby__players panel">

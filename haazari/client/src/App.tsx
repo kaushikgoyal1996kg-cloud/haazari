@@ -9,8 +9,11 @@ import { WinnerScreen } from './components/Play/WinnerScreen';
 import { RulesModal } from './components/RulesModal';
 import { SettingsModal } from './components/SettingsModal';
 import { StatsModal } from './components/StatsModal';
+import { RoundHistoryModal } from './components/RoundHistoryModal';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { TutorialModal } from './components/TutorialModal';
 import { ChatPanel } from './components/ChatPanel';
+import { hasSeenTutorial } from './lib/tutorial';
 import './App.css';
 
 const ARRANGING_STATES = new Set(['ARRANGING_HANDS', 'WAITING_FOR_HAND_CONFIRMATION', 'ROUND_READY']);
@@ -61,6 +64,7 @@ function HomeScreenReturn() {
 export function App() {
   const {
     connectionStatus,
+    hasConnectedOnce,
     room,
     gameState,
     myPlayerId,
@@ -76,6 +80,20 @@ export function App() {
   const [showRules, setShowRules] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showRoundHistory, setShowRoundHistory] = useState(false);
+  const [showConnBanner, setShowConnBanner] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => !hasSeenTutorial());
+
+  // Delay showing the connection banner briefly so a normal fast connection
+  // never flashes it - only show once a wait is actually noticeable.
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      setShowConnBanner(false);
+      return;
+    }
+    const t = setTimeout(() => setShowConnBanner(true), 1200);
+    return () => clearTimeout(t);
+  }, [connectionStatus]);
 
   // The server transitions straight from "playing Set 4" to
   // ROUND_COMPLETE (or straight to GAME_COMPLETE, if that round won the
@@ -169,8 +187,12 @@ export function App() {
 
   return (
     <div className="app-root">
-      {connectionStatus === 'disconnected' && (
-        <div className="conn-banner">Reconnecting…</div>
+      {showConnBanner && connectionStatus !== 'connected' && (
+        <div className="conn-banner">
+          {hasConnectedOnce
+            ? 'Reconnecting…'
+            : 'Waking up the table… this can take up to a minute the first time'}
+        </div>
       )}
       {room && viewMode === 'active' && (
         <button className="settings-fab fab" onClick={() => setShowSettings(true)} aria-label="Settings">
@@ -181,13 +203,17 @@ export function App() {
       <div key={screenKey} className="screen-fade">
         {screen}
       </div>
+      {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
       {showStats && <StatsModal onClose={() => setShowStats(false)} />}
+      {showRoundHistory && <RoundHistoryModal onClose={() => setShowRoundHistory(false)} />}
       {showSettings && (
         <SettingsModal
           onClose={() => setShowSettings(false)}
           onOpenRules={() => setShowRules(true)}
           onOpenStats={() => setShowStats(true)}
+          onOpenTutorial={() => setShowTutorial(true)}
+          onOpenRoundHistory={() => setShowRoundHistory(true)}
           onLeaveTable={inGameForSettings ? leaveTable : undefined}
         />
       )}
