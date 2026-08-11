@@ -54,6 +54,9 @@ export interface HaazariPublicStatePayload {
   currentLeader: PlayerId | null;
   currentPlayOrder: PlayerId[] | null;
   playersPlayedThisSubRound: PlayerId[];
+  /** Actual cards played so far in the current sub-round - visible as soon
+   *  as each player throws their set, not just after all 4 have played. */
+  playedSetsThisSubRound: { playerId: PlayerId; cards: Card[] }[];
   subRoundResultsThisRound: SubRoundResult[];
   winnerId: PlayerId | null;
 }

@@ -185,3 +185,139 @@ export function autoArrange(hand: Card[], cumulativeScore?: number): FourSets | 
     bestIdx.g4.map((i) => hand[i]),
   ];
 }
+
+export interface ArrangementOption {
+  label: string;
+  description: string;
+  sets: FourSets;
+}
+
+interface IndexCandidate {
+  key: number;
+  g1: number[];
+  g2: number[];
+  g3: number[];
+  g4: number[];
+}
+
+function idxFingerprint(c: { g1: number[]; g2: number[]; g3: number[]; g4: number[] }): string {
+  return [c.g1, c.g2, c.g3, c.g4]
+    .map((g) => [...g].sort((a, b) => a - b).join(','))
+    .join('|');
+}
+
+function toFourSets(hand: Card[], c: { g1: number[]; g2: number[]; g3: number[]; g4: number[] }): FourSets {
+  return [c.g1.map((i) => hand[i]), c.g2.map((i) => hand[i]), c.g3.map((i) => hand[i]), c.g4.map((i) => hand[i])];
+}
+
+/**
+ * Like autoArrange(), but returns 2-3 genuinely different labeled options
+ * instead of a single prescribed answer: up to 2 distinct "Balanced"
+ * splits plus one "Aggressive" (concentrated) split, so the player can
+ * choose their own risk/reward tradeoff. Runs the same exhaustive search
+ * as autoArrange() exactly once, tracking both scoring strategies in the
+ * same pass to stay fast.
+ */
+export function autoArrangeOptions(hand: Card[], cumulativeScore?: number): ArrangementOption[] {
+  if (hand.length !== 13) throw new Error('autoArrangeOptions requires exactly 13 cards');
+
+  const closeToWinning =
+    cumulativeScore !== undefined && WINNING_SCORE - cumulativeScore <= CLOSE_TO_WINNING_THRESHOLD;
+
+  const values = hand.map((c) => RANK_VALUE[c.rank]);
+  const suits = hand.map((c) => SUIT_CODE[c.suit]);
+  const n = 13;
+  const categoryOf = (packedScore: number) => Math.floor(packedScore / 65536);
+
+  const balancedTop: IndexCandidate[] = []; // sorted desc by key, capped at 2
+  let concentratedBest: IndexCandidate | null = null;
+  let concentratedBestKey = -1;
+
+  for (let a = 0; a < n; a++) {
+    for (let b = a + 1; b < n; b++) {
+      for (let c = b + 1; c < n; c++) {
+        for (let d = c + 1; d < n; d++) {
+          const fourIdx: [number, number, number, number] = [a, b, c, d];
+          const fScore = fourScore(fourIdx, values, suits);
+
+          const remaining: number[] = [];
+          for (let x = 0; x < n; x++) {
+            if (x !== a && x !== b && x !== c && x !== d) remaining.push(x);
+          }
+
+          const anchor1 = remaining[0];
+          for (let p = 1; p < 9; p++) {
+            for (let q = p + 1; q < 9; q++) {
+              const g1: [number, number, number] = [anchor1, remaining[p], remaining[q]];
+              const after1: number[] = [];
+              for (let x = 1; x < 9; x++) {
+                if (x !== p && x !== q) after1.push(remaining[x]);
+              }
+              const anchor2 = after1[0];
+              for (let r = 1; r < 6; r++) {
+                for (let s = r + 1; s < 6; s++) {
+                  const g2: [number, number, number] = [anchor2, after1[r], after1[s]];
+                  const g3: number[] = [];
+                  for (let x = 1; x < 6; x++) {
+                    if (x !== r && x !== s) g3.push(after1[x]);
+                  }
+
+                  const v1 = tripleScore(g1[0], g1[1], g1[2], values, suits);
+                  const v2 = tripleScore(g2[0], g2[1], g2[2], values, suits);
+                  const v3 = tripleScore(g3[0], g3[1], g3[2], values, suits);
+
+                  let s1 = v1, s2 = v2, s3 = v3;
+                  let i1: number[] = g1, i2: number[] = g2, i3: number[] = g3;
+                  if (s1 < s2) { [s1, s2] = [s2, s1]; [i1, i2] = [i2, i1]; }
+                  if (s2 < s3) { [s2, s3] = [s3, s2]; [i2, i3] = [i3, i2]; }
+                  if (s1 < s2) { [s1, s2] = [s2, s1]; [i1, i2] = [i2, i1]; }
+
+                  if (s3 < fScore) continue; // Set4 would out-rank Set3 - invalid
+
+                  const cat1 = categoryOf(s1), cat2 = categoryOf(s2), cat3 = categoryOf(s3), catF = categoryOf(fScore);
+                  const weakestCat = Math.min(cat1, cat2, cat3, catF);
+                  const sumCat = cat1 + cat2 + cat3 + catF;
+                  const rawSum = s1 + s2 + s3 + fScore;
+                  const balancedKey = weakestCat * 100_000_000 + sumCat * 2_000_000 + rawSum;
+
+                  if (balancedTop.length < 2 || balancedKey > balancedTop[balancedTop.length - 1].key) {
+                    balancedTop.push({ key: balancedKey, g1: i1, g2: i2, g3: i3, g4: fourIdx });
+                    balancedTop.sort((x, y) => y.key - x.key);
+                    if (balancedTop.length > 2) balancedTop.length = 2;
+                  }
+
+                  const concentratedKey = ((s1 * 1_100_000 + s2) * 1_100_000 + s3) * 1_100_000 + fScore;
+                  if (concentratedKey > concentratedBestKey) {
+                    concentratedBestKey = concentratedKey;
+                    concentratedBest = { key: concentratedKey, g1: i1, g2: i2, g3: i3, g4: fourIdx };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const options: ArrangementOption[] = [];
+  const seen = new Set<string>();
+  function addOption(label: string, description: string, cand: IndexCandidate | null) {
+    if (!cand) return;
+    const fp = idxFingerprint(cand);
+    if (seen.has(fp)) return;
+    seen.add(fp);
+    options.push({ label, description, sets: toFourSets(hand, cand) });
+  }
+
+  if (closeToWinning) {
+    addOption('Aggressive', "You're close to winning - go for one big near-certain set to cross the finish line.", concentratedBest);
+    addOption('Balanced', 'Spread your strength for a shot at winning several sets instead.', balancedTop[0] ?? null);
+  } else {
+    addOption('Balanced', 'A realistic shot at winning several sets, not just one.', balancedTop[0] ?? null);
+    addOption('Balanced Alternative', 'Another well-balanced split, arranged differently.', balancedTop[1] ?? null);
+    addOption('Aggressive', 'Stack your strength into Set 1 for one near-certain win.', concentratedBest);
+  }
+
+  return options;
+}

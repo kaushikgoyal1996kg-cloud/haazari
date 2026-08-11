@@ -311,6 +311,12 @@ export class HaazariGame {
       currentLeader: this.currentLeader,
       currentPlayOrder,
       playersPlayedThisSubRound: this.playedThisSubRound.map((p) => p.playerId),
+      // The actual cards played so far in the CURRENT (possibly still
+      // in-progress) sub-round - once a player throws their set, it's
+      // committed and visible, same as a real table, so this is safe to
+      // broadcast to everyone immediately rather than waiting for all 4
+      // players to finish before anyone sees what was played.
+      playedSetsThisSubRound: this.playedThisSubRound.map((p) => ({ playerId: p.playerId, cards: p.cards })),
       subRoundResultsThisRound: this.subRoundResults,
       winnerId: this.winnerId,
     };

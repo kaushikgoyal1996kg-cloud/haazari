@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validatePlayerArrangement, suggestArrangement, greedyMaxFirstArrangement } from '../src/game/arrangement.js';
+import { validatePlayerArrangement, suggestArrangement, greedyMaxFirstArrangement, suggestArrangementOptions } from '../src/game/arrangement.js';
 import { createDeck } from '../src/game/deck.js';
 import { classifyThreeCardHand } from '../src/game/hands.js';
 import { classifyFourCardHand } from '../src/game/fourCardRanking.js';
@@ -267,5 +267,73 @@ describe('suggestArrangement - endgame strategy switch (close to WINNING_SCORE)'
   it('the concentrated result is still a fully valid arrangement', () => {
     const arrangement = suggestArrangement(hand, 950);
     expect(validatePlayerArrangement(hand, arrangement).valid).toBe(true);
+  });
+});
+
+describe('suggestArrangementOptions - multiple choices', () => {
+  const acesHand: Card[] = [
+    c('A', 'SPADES'), c('A', 'HEARTS'), c('A', 'DIAMONDS'), c('A', 'CLUBS'),
+    c('K', 'SPADES'), c('K', 'HEARTS'),
+    c('Q', 'SPADES'), c('J', 'DIAMONDS'), c('9', 'CLUBS'),
+    c('7', 'HEARTS'), c('5', 'SPADES'), c('3', 'DIAMONDS'), c('2', 'CLUBS'),
+  ];
+
+  it('returns between 2 and 3 options, each a fully valid arrangement', () => {
+    const options = suggestArrangementOptions(acesHand);
+    expect(options.length).toBeGreaterThanOrEqual(2);
+    expect(options.length).toBeLessThanOrEqual(3);
+    for (const opt of options) {
+      expect(validatePlayerArrangement(acesHand, opt.sets).valid).toBe(true);
+      expect(opt.label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('every option uses a genuinely different card grouping (no duplicates)', () => {
+    const options = suggestArrangementOptions(acesHand);
+    const fingerprints = options.map((o) => o.sets.map((s) => s.map((c) => c.id).sort().join(',')).join('|'));
+    const uniqueFingerprints = new Set(fingerprints);
+    expect(uniqueFingerprints.size).toBe(options.length);
+  });
+
+  it('includes a distinctly "Aggressive" option that concentrates strength (matches greedyMaxFirstArrangement)', () => {
+    const options = suggestArrangementOptions(acesHand);
+    const aggressiveOption = options.find((o) => o.label === 'Aggressive');
+    expect(aggressiveOption).toBeDefined();
+    const greedy = greedyMaxFirstArrangement(acesHand);
+    expect(aggressiveOption!.sets.map((s) => s.map((c) => c.id).sort().join(','))).toEqual(
+      greedy.map((s) => s.map((c) => c.id).sort().join(','))
+    );
+  });
+
+  it('near the winning threshold, the Aggressive option is listed first', () => {
+    const closeScore = GAME_RULES.WINNING_SCORE - GAME_RULES.CLOSE_TO_WINNING_THRESHOLD;
+    const options = suggestArrangementOptions(acesHand, closeScore);
+    expect(options[0].label).toBe('Aggressive');
+  });
+
+  it('far from winning, a Balanced option is listed first', () => {
+    const options = suggestArrangementOptions(acesHand, 200);
+    expect(options[0].label).toBe('Balanced');
+  });
+
+  it('works across many random hands without ever throwing or returning zero options', () => {
+    let seed = 42;
+    function rand() {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    }
+    for (let t = 0; t < 20; t++) {
+      const deck = createDeck();
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      const hand = deck.slice(0, 13);
+      const options = suggestArrangementOptions(hand);
+      expect(options.length).toBeGreaterThan(0);
+      for (const opt of options) {
+        expect(validatePlayerArrangement(hand, opt.sets).valid).toBe(true);
+      }
+    }
   });
 });

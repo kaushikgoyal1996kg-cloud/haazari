@@ -219,8 +219,17 @@ export function suggestArrangement(hand: Card[], cumulativeScore?: number): [Car
     return greedyMaxFirstArrangement(hand);
   }
 
-  let best: [Card[], Card[], Card[], Card[]] | null = null;
-  let bestScore = -Infinity;
+  return findTopBalancedArrangements(hand, 1)[0] ?? greedyMaxFirstArrangement(hand);
+}
+
+function fingerprint(sets: [Card[], Card[], Card[], Card[]]): string {
+  return sets.map((s) => s.map((c) => c.id).sort().join(',')).join('|');
+}
+
+/** Runs the bounded balanced search and returns up to `n` of the highest-scoring
+ *  DISTINCT candidates (by card composition), best first. */
+function findTopBalancedArrangements(hand: Card[], n: number): [Card[], Card[], Card[], Card[]][] {
+  const top: { sets: [Card[], Card[], Card[], Card[]]; score: number }[] = [];
 
   for (const { combo: set1, value: set1Value } of rankedThreeCardSubsets(hand, SET1_CANDIDATES)) {
     const afterSet1 = [...hand];
@@ -245,15 +254,85 @@ export function suggestArrangement(hand: Card[], cumulativeScore?: number): [Car
 
         const candidate: [Card[], Card[], Card[], Card[]] = [set1, set2, set3, set4];
         const score = balanceScore(candidate);
-        if (score > bestScore) {
-          bestScore = score;
-          best = candidate;
+
+        if (top.length < n || score > top[top.length - 1].score) {
+          top.push({ sets: candidate, score });
+          top.sort((a, b) => b.score - a.score);
+          if (top.length > n) top.length = n;
         }
       }
     }
   }
 
-  return best ?? greedyMaxFirstArrangement(hand);
+  // De-duplicate by composition (the loop above can revisit an equivalent
+  // split via a different search path) while preserving score order.
+  const seen = new Set<string>();
+  const distinct: [Card[], Card[], Card[], Card[]][] = [];
+  for (const { sets } of top) {
+    const fp = fingerprint(sets);
+    if (seen.has(fp)) continue;
+    seen.add(fp);
+    distinct.push(sets);
+  }
+  return distinct;
+}
+
+export interface ArrangementOption {
+  label: string;
+  description: string;
+  sets: [Card[], Card[], Card[], Card[]];
+}
+
+/**
+ * Like suggestArrangement(), but returns 2-3 genuinely different labeled
+ * options instead of a single prescribed answer - a "Balanced" strategy
+ * (and its next-best distinct alternative, if one exists), plus an
+ * "Aggressive" option that concentrates strength into Set 1. Lets the
+ * player choose their own risk/reward tradeoff instead of always being
+ * pushed toward one algorithm's opinion.
+ */
+export function suggestArrangementOptions(hand: Card[], cumulativeScore?: number): ArrangementOption[] {
+  if (hand.length !== GAME_RULES.CARDS_PER_PLAYER) {
+    throw new Error(`suggestArrangementOptions requires a full ${GAME_RULES.CARDS_PER_PLAYER}-card hand`);
+  }
+
+  const closeToWinning =
+    cumulativeScore !== undefined &&
+    GAME_RULES.WINNING_SCORE - cumulativeScore <= GAME_RULES.CLOSE_TO_WINNING_THRESHOLD;
+
+  const balancedTop = findTopBalancedArrangements(hand, 2);
+  const aggressive = greedyMaxFirstArrangement(hand);
+
+  const options: ArrangementOption[] = [];
+  const seen = new Set<string>();
+
+  function addOption(label: string, description: string, sets: [Card[], Card[], Card[], Card[]]) {
+    const fp = fingerprint(sets);
+    if (seen.has(fp)) return;
+    seen.add(fp);
+    options.push({ label, description, sets });
+  }
+
+  if (closeToWinning) {
+    addOption(
+      'Aggressive',
+      "You're close to winning - go for one big near-certain set to cross the finish line.",
+      aggressive
+    );
+    if (balancedTop[0]) {
+      addOption('Balanced', 'Spread your strength for a shot at winning several sets instead.', balancedTop[0]);
+    }
+  } else {
+    if (balancedTop[0]) {
+      addOption('Balanced', 'A realistic shot at winning several sets, not just one.', balancedTop[0]);
+    }
+    if (balancedTop[1]) {
+      addOption('Balanced Alternative', 'Another well-balanced split, arranged differently.', balancedTop[1]);
+    }
+    addOption('Aggressive', 'Stack your strength into Set 1 for one near-certain win.', aggressive);
+  }
+
+  return options.length > 0 ? options : [{ label: 'Suggested', description: '', sets: aggressive }];
 }
 
 /**

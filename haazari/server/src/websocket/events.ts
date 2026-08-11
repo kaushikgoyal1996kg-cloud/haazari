@@ -18,6 +18,7 @@ export interface ClientToServerEvents {
 
   'game:confirmArrangement': (payload: { cardIdSets: [string[], string[], string[], string[]] }) => void;
   'game:requestSuggestion': (ack: (res: SuggestionAck) => void) => void;
+  'game:requestSuggestionOptions': (ack: (res: SuggestionOptionsAck) => void) => void;
   'game:playSet': () => void;
   'game:requestDismissal': (payload: { reason: DismissalReason }) => void;
   'game:startNextRound': () => void;
@@ -37,6 +38,18 @@ export interface SuggestionAck {
   ok: boolean;
   error?: string;
   cardIdSets?: [string[], string[], string[], string[]];
+}
+
+export interface SuggestionOptionAck {
+  label: string;
+  description: string;
+  cardIdSets: [string[], string[], string[], string[]];
+}
+
+export interface SuggestionOptionsAck {
+  ok: boolean;
+  error?: string;
+  options?: SuggestionOptionAck[];
 }
 
 export interface TablesAck {
@@ -82,6 +95,9 @@ export interface HaazariPublicStatePayload {
   currentLeader: PlayerId | null;
   currentPlayOrder: PlayerId[] | null;
   playersPlayedThisSubRound: PlayerId[];
+  /** Actual cards played so far in the current sub-round - once thrown,
+   *  a set is committed and visible to everyone immediately. */
+  playedSetsThisSubRound: { playerId: PlayerId; cards: Card[] }[];
   subRoundResultsThisRound: SubRoundResult[];
   winnerId: PlayerId | null;
 }

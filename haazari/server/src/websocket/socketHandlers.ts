@@ -2,7 +2,7 @@ import type { Server, Socket } from 'socket.io';
 import { RoomManager, RoomManagerError } from '../rooms/roomManager.js';
 import { hasPendingBotAction, performOneBotAction } from '../rooms/botController.js';
 import { HaazariGame } from '../game/gameEngine.js';
-import { suggestArrangement } from '../game/arrangement.js';
+import { suggestArrangement, suggestArrangementOptions } from '../game/arrangement.js';
 import type { Card, DismissalReason, PlayerId } from '../game/types.js';
 import type { ClientToServerEvents, ServerToClientEvents, HaazariPublicStatePayload } from './events.js';
 
@@ -218,6 +218,28 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
       }
     });
 
+    socket.on('game:requestSuggestionOptions', (ack) => {
+      try {
+        const { roomCode, playerId } = socket.data;
+        if (!roomCode || !playerId) throw new Error('Not currently in a room.');
+        const room = rooms.getRoomOrThrow(roomCode);
+        if (!room.game) throw new Error('Game has not started yet.');
+        const hand = room.game.getPlayerHand(playerId);
+        const cumulativeScore = room.game.cumulativeScores[playerId] ?? 0;
+        const options = suggestArrangementOptions(hand, cumulativeScore);
+        ack({
+          ok: true,
+          options: options.map((opt) => ({
+            label: opt.label,
+            description: opt.description,
+            cardIdSets: opt.sets.map((s) => s.map((c) => c.id)) as [string[], string[], string[], string[]],
+          })),
+        });
+      } catch (err) {
+        ack({ ok: false, error: errMessage(err) });
+      }
+    });
+
     socket.on('game:playSet', () => {
       withGame(socket, rooms, (game, playerId) => {
         game.playSet(playerId);
@@ -367,6 +389,7 @@ function sendPublicGameState(io: IO, roomCode: string, game: HaazariGame): void 
     currentLeader: s.currentLeader,
     currentPlayOrder: s.currentPlayOrder,
     playersPlayedThisSubRound: s.playersPlayedThisSubRound,
+    playedSetsThisSubRound: s.playedSetsThisSubRound,
     subRoundResultsThisRound: s.subRoundResultsThisRound,
     winnerId: s.winnerId,
   };

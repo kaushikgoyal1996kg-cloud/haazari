@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../../lib/GameStore';
-import { PlayingCard, CardBack } from '../Card';
+import { PlayingCard } from '../Card';
 import { AvatarBadge } from '../Lobby/AvatarPicker';
 import { playCardPlaySound, playRevealSound, playPointsSound } from '../../lib/sound';
 import { hapticMedium } from '../../lib/haptics';
@@ -95,6 +95,7 @@ export function PlayTable() {
           const isDealer = pid === gameState.dealerId;
           const isTurn = pid === nextToPlay;
           const hasPlayed = played.has(pid);
+          const playedCards = gameState.playedSetsThisSubRound.find((p) => p.playerId === pid)?.cards;
           const info = room.players.find((p) => p.playerId === pid);
           return (
             <div key={pid} className={`seat seat--${side} ${isMe ? 'seat--me' : ''} ${isTurn ? 'seat--turn' : ''}`}>
@@ -110,8 +111,12 @@ export function PlayTable() {
               </div>
               <div className="seat__status">
                 {!isMe &&
-                  (hasPlayed ? (
-                    <CardBack size="sm" />
+                  (hasPlayed && playedCards ? (
+                    <div className="seat__played-cards">
+                      {playedCards.map((c) => (
+                        <PlayingCard key={c.id} card={c} size="sm" />
+                      ))}
+                    </div>
                   ) : isTurn ? (
                     info?.isBot ? (
                       <span className="seat__thinking">

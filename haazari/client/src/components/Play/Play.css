@@ -527,3 +527,11 @@
   display: flex;
   gap: 3px;
 }
+
+.seat__played-cards {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 90px;
+}

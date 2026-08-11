@@ -153,3 +153,48 @@ describe('dismissal voids the whole round for everyone', () => {
     expect(outcome.ok).toBe(false);
   });
 });
+
+describe('getPublicState().playedSetsThisSubRound', () => {
+  it('is empty before anyone has played the current sub-round', () => {
+    const game = new HaazariGame('ROOM1', PLAYERS, 'P1');
+    dealFixtureRound(game);
+    for (const p of PLAYERS) game.confirmArrangement(p, ARRANGED_SETS[p]);
+    expect(game.getPublicState().playedSetsThisSubRound).toEqual([]);
+  });
+
+  it('reveals each played set IMMEDIATELY as that player plays it - not just after all 4 have played', () => {
+    const game = new HaazariGame('ROOM1', PLAYERS, 'P1');
+    dealFixtureRound(game);
+    for (const p of PLAYERS) game.confirmArrangement(p, ARRANGED_SETS[p]);
+    const order = game.getCurrentPlayOrder();
+
+    // First player plays - their set should appear right away, others still hidden.
+    game.playSet(order[0]);
+    let state = game.getPublicState();
+    expect(state.playedSetsThisSubRound.length).toBe(1);
+    expect(state.playedSetsThisSubRound[0].playerId).toBe(order[0]);
+    expect(state.playedSetsThisSubRound[0].cards.length).toBe(3); // Set 1 (index 0) has 3 cards
+    expect(state.playedSetsThisSubRound[0].cards).toEqual(ARRANGED_SETS[order[0]][0]);
+
+    // Second player plays - now two are visible, the other two still aren't.
+    game.playSet(order[1]);
+    state = game.getPublicState();
+    expect(state.playedSetsThisSubRound.length).toBe(2);
+    const playedIds = state.playedSetsThisSubRound.map((p) => p.playerId);
+    expect(playedIds).toContain(order[0]);
+    expect(playedIds).toContain(order[1]);
+    expect(playedIds).not.toContain(order[2]);
+    expect(playedIds).not.toContain(order[3]);
+  });
+
+  it('resets to empty once the sub-round resolves and the next one begins', () => {
+    const game = new HaazariGame('ROOM1', PLAYERS, 'P1');
+    dealFixtureRound(game);
+    for (const p of PLAYERS) game.confirmArrangement(p, ARRANGED_SETS[p]);
+    const order = game.getCurrentPlayOrder();
+    for (const pid of order) game.playSet(pid);
+    // Set 1 resolved - state has moved on to Set 2, so the field should
+    // reflect Set 2's (empty so far) plays, not Set 1's leftover cards.
+    expect(game.getPublicState().playedSetsThisSubRound).toEqual([]);
+  });
+});

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Card, DismissalReason, FourSets } from '../../game/types';
 import { PlayingCard } from '../Card';
-import { autoArrange } from '../../game/autoArrange';
+import { autoArrangeOptions, type ArrangementOption } from '../../game/autoArrange';
 import {
   classifyThree,
   classifyFour,
@@ -24,6 +24,7 @@ type SortMode = 'dealt' | 'rank' | 'suit';
 
 const SET_SIZES = [3, 3, 3, 4];
 const SET_LABELS = ['Set 1 — Best', 'Set 2', 'Set 3', 'Set 4 — Weakest'];
+const SET_LABELS_SHORT = ['S1', 'S2', 'S3', 'S4'];
 const SUIT_ORDER: Record<Card['suit'], number> = { SPADES: 0, HEARTS: 1, DIAMONDS: 2, CLUBS: 3 };
 
 function sortCards(cards: Card[], mode: SortMode): Card[] {
@@ -51,6 +52,8 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError, cum
   const [selected, setSelected] = useState<Selected | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('rank');
   const [justDealt, setJustDealt] = useState(true);
+  const [suggestionOptions, setSuggestionOptions] = useState<ArrangementOption[] | null>(null);
+  const [computingOptions, setComputingOptions] = useState(false);
   const isCloseToWinning = cumulativeScore !== undefined && 1000 - cumulativeScore <= 150;
 
   // Reset the board whenever a genuinely new hand arrives (new round dealt).
@@ -127,12 +130,22 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError, cum
 
   function handleAutoArrange() {
     setJustDealt(false);
-    const result = autoArrange(hand, cumulativeScore);
-    if (result) {
-      setSlots(result);
-      setPool([]);
-      setSelected(null);
-    }
+    setComputingOptions(true);
+    setSuggestionOptions(null);
+    // Let React paint the "Thinking…" state before the ~300ms synchronous
+    // search runs, so the button doesn't just freeze with no feedback.
+    setTimeout(() => {
+      const options = autoArrangeOptions(hand, cumulativeScore);
+      setSuggestionOptions(options);
+      setComputingOptions(false);
+    }, 30);
+  }
+
+  function applySuggestionOption(opt: ArrangementOption) {
+    setSlots(opt.sets);
+    setPool([]);
+    setSelected(null);
+    setSuggestionOptions(null);
   }
 
   function handleReset() {
@@ -262,9 +275,40 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError, cum
         </p>
       )}
 
+      {suggestionOptions && (
+        <div className="suggestion-picker panel">
+          <div className="suggestion-picker__header">
+            <span>Pick a suggestion</span>
+            <button className="btn btn-ghost suggestion-picker__cancel" onClick={() => setSuggestionOptions(null)}>
+              ✕
+            </button>
+          </div>
+          {suggestionOptions.map((opt, i) => (
+            <button key={i} className="suggestion-option" onClick={() => applySuggestionOption(opt)}>
+              <div className="suggestion-option__header">
+                <span className="suggestion-option__label">{opt.label}</span>
+              </div>
+              <p className="suggestion-option__description">{opt.description}</p>
+              <div className="suggestion-option__sets">
+                {opt.sets.map((setCards, idx) => {
+                  const label = idx === 3 ? labelFor(classifyFour(setCards)) : labelFor(classifyThree(setCards));
+                  return (
+                    <span key={idx} className="suggestion-option__set-tag">
+                      {SET_LABELS_SHORT[idx]}: {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="arrange-actions">
         <button className="btn btn-ghost" onClick={handleReset}>Reset</button>
-        <button className="btn btn-ghost" onClick={handleAutoArrange}>Suggest Arrangement</button>
+        <button className="btn btn-ghost" onClick={handleAutoArrange} disabled={computingOptions}>
+          {computingOptions ? 'Thinking…' : 'Suggest Arrangement'}
+        </button>
         <button className="btn btn-primary" disabled={!canConfirm} onClick={() => onConfirm(slots)}>
           Confirm Hand
         </button>
