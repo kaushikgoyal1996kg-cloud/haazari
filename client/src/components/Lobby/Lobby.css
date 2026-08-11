@@ -1,0 +1,299 @@
+.landing {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.landing__title {
+  font-size: clamp(2.4rem, 10vw, 3.6rem);
+  margin-top: 8px;
+}
+
+.landing__tagline {
+  margin-bottom: 24px;
+}
+
+.landing__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.landing__form {
+  width: 100%;
+  max-width: 340px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.landing__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--ivory-200);
+}
+
+.landing__field input {
+  background: rgba(6, 35, 26, 0.6);
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--ivory-100);
+  min-height: 44px;
+}
+
+.landing__form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.avatar-picker {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.avatar-picker__option {
+  background: rgba(6, 35, 26, 0.6);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  border-radius: 8px;
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 8px 0;
+  min-height: 40px;
+  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.avatar-picker__option--selected {
+  border-color: var(--gold-500);
+  background: rgba(201, 162, 39, 0.18);
+  transform: scale(1.05);
+}
+
+.avatar-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.avatar-badge--sm {
+  font-size: 1rem;
+}
+
+.avatar-badge--md {
+  font-size: 1.3rem;
+}
+
+.avatar-badge--lg {
+  font-size: 1.8rem;
+}
+
+/* Medallion ring treatment - used for avatars seated at the table, like a
+   small brass coin/chip frame rather than a bare floating emoji. */
+.avatar-badge--ring {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(232, 203, 107, 0.22), rgba(10, 46, 33, 0.55) 70%);
+  border: 1.5px solid var(--gold-500);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.35);
+  padding: 0.32em;
+}
+
+.tables-browser {
+  max-width: 420px;
+}
+
+.tables-browser__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 700;
+  color: var(--gold-300);
+}
+
+.tables-browser__count {
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.tables-browser__empty {
+  padding: 20px 8px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.tables-browser__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.tables-browser__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(6, 35, 26, 0.5);
+  border: 1px solid rgba(230, 221, 192, 0.15);
+  border-radius: 10px;
+}
+
+.tables-browser__row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.tables-browser__code {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  color: var(--gold-300);
+  font-weight: 700;
+}
+
+.tables-browser__row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.tables-browser__row-actions .btn {
+  padding: 6px 14px;
+  min-height: 34px;
+}
+
+.room-lobby {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.room-lobby__title {
+  font-size: 1.8rem;
+}
+
+.room-lobby__code {
+  width: 100%;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.room-lobby__code-value {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  letter-spacing: 0.12em;
+  color: var(--gold-300);
+}
+
+.room-lobby__players {
+  width: 100%;
+  padding: 8px 16px;
+}
+
+.room-lobby__player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(230, 221, 192, 0.12);
+  text-align: left;
+}
+
+.room-lobby__player:last-child {
+  border-bottom: none;
+}
+
+.room-lobby__name {
+  flex: 1;
+}
+
+.room-lobby__host-tag {
+  font-size: 0.7rem;
+  color: var(--gold-300);
+  border: 1px solid var(--gold-500);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  margin-left: 6px;
+}
+
+.room-lobby__host-tag--bot {
+  color: var(--ivory-100);
+  border-color: var(--sapphire-500);
+  background: rgba(43, 76, 111, 0.4);
+}
+
+.room-lobby__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(230, 221, 192, 0.3);
+  flex-shrink: 0;
+}
+
+.room-lobby__dot--ready {
+  background: var(--success-500);
+}
+
+.room-lobby__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.room-lobby__hint {
+  font-size: 0.85rem;
+}
+
+.landing__invite-note {
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid var(--gold-500);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  margin: 0 0 4px;
+}
+
+.room-lobby__share-btn {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.room-lobby__share-copied {
+  font-size: 0.75rem;
+  animation: room-lobby-fade-in 200ms ease-out;
+}
+
+@keyframes room-lobby-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

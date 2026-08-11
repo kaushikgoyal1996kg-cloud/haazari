@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Work+Sans:wght@400;500;600;700&display=swap');
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ivory-100);
+  background:
+    radial-gradient(ellipse at 50% -10%, var(--felt-600) 0%, var(--felt-800) 55%, var(--felt-900) 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+p,
+button,
+input,
+label {
+  font-family: var(--font-body);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input {
+  font: inherit;
+}
+
+/* Visible keyboard focus everywhere (accessibility floor) */
+:focus-visible {
+  outline: 2px solid var(--gold-300);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-300);
+  text-shadow: 0 2px 12px rgba(201, 162, 39, 0.35);
+}
+
+.gold-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
+  border: none;
+  margin: 0;
+}
+
+.btn {
+  border: 1px solid var(--gold-500);
+  background: linear-gradient(180deg, var(--felt-500), var(--felt-700));
+  color: var(--ivory-100);
+  padding: 12px 22px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  min-height: 44px;
+}
+
+.btn:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.25);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--gold-300), var(--gold-500));
+  color: var(--ink-900);
+  border-color: var(--gold-100);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: rgba(230, 221, 192, 0.3);
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(20, 83, 57, 0.75), rgba(10, 46, 33, 0.9));
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(6px);
+}
+
+.text-muted {
+  color: var(--ivory-200);
+  opacity: 0.7;
+}
+
+.error-text {
+  color: var(--ruby-300);
+  font-size: 0.9rem;
+}
+
+::selection {
+  background: var(--gold-500);
+  color: var(--ink-900);
+}
+
+.empty-state__icon {
+  display: inline-block;
+  font-size: 1.6rem;
+  opacity: 0.6;
+  margin-bottom: 6px;
+}

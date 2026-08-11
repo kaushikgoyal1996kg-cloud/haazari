@@ -1,0 +1,57 @@
+.tutorial-modal {
+  max-width: 340px;
+}
+
+.tutorial-modal__slide {
+  text-align: center;
+  padding: 12px 4px 20px;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutorial-modal__emoji {
+  font-size: 2.4rem;
+  margin-bottom: 10px;
+}
+
+.tutorial-modal__title {
+  font-family: var(--font-display);
+  color: var(--gold-300);
+  font-size: 1.1rem;
+  margin: 0 0 8px;
+}
+
+.tutorial-modal__body {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ivory-100);
+  margin: 0;
+}
+
+.tutorial-modal__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tutorial-modal__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(230, 221, 192, 0.25);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.tutorial-modal__dot--active {
+  background: var(--gold-300);
+}
+
+.tutorial-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

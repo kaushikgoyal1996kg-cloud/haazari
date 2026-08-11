@@ -1,0 +1,565 @@
+.play-screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 12px) 12px 12px;
+  gap: 10px;
+  background: radial-gradient(ellipse at 50% 0%, var(--felt-800) 0%, var(--felt-950) 70%);
+}
+
+.play-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.play-header__meta {
+  display: flex;
+  gap: 14px;
+}
+
+.score-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.score-strip__item {
+  flex: 1;
+  min-width: 72px;
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-panel-border);
+  border-radius: 10px;
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: var(--shadow-lifted);
+}
+
+.score-strip__item--me {
+  border-color: var(--gold-400);
+  background: linear-gradient(180deg, rgba(201, 162, 39, 0.16), rgba(201, 162, 39, 0.08));
+}
+
+.score-strip__name {
+  font-size: 0.72rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.score-strip__value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  background: linear-gradient(180deg, var(--gold-100), var(--gold-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.table-felt {
+  position: relative;
+  flex: 1;
+  min-height: 260px;
+  border-radius: 26px;
+  overflow: hidden;
+  background: var(--felt-700);
+  border-width: 16px;
+  border-style: solid;
+  border-color: var(--wood-600);
+  border-image: linear-gradient(
+      118deg,
+      var(--wood-950) 0%,
+      var(--wood-600) 18%,
+      var(--wood-highlight) 34%,
+      var(--wood-600) 50%,
+      var(--wood-800) 64%,
+      var(--wood-highlight) 80%,
+      var(--wood-600) 92%,
+      var(--wood-950) 100%
+    )
+    28;
+  box-shadow:
+    inset 0 0 70px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.45),
+    inset 0 3px 6px rgba(255, 226, 160, 0.1),
+    0 12px 5px rgba(0, 0, 0, 0.4),
+    var(--shadow-panel);
+}
+
+/* Base jewel-tone gradient with an off-center warm spotlight, like table lighting */
+.table-felt__base {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 18%, rgba(255, 226, 160, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 45%, var(--felt-500) 0%, var(--felt-600) 40%, var(--felt-700) 72%, var(--felt-900) 100%);
+}
+
+/* Quilted diamond stitch texture, like a premium felt/leather table surface */
+.table-felt__quilt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.035) 0px, rgba(255, 255, 255, 0.035) 1px, transparent 1px, transparent 26px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.16) 0px, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 26px);
+}
+
+/* Soft vignette for depth - premium felt tables are darker at the edges */
+.table-felt__vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 48%, transparent 40%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+/* Faint center emblem, like a stitched/embossed mark on a real card table */
+.table-felt__emblem {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.8rem;
+  color: rgba(232, 203, 107, 0.08);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Small brass corner rivets, like real card table rails */
+.table-felt__rivet {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--gold-100), var(--gold-500) 55%, var(--gold-900) 100%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+}
+.table-felt__rivet--0 {
+  top: 5px;
+  left: 5px;
+}
+.table-felt__rivet--1 {
+  top: 5px;
+  right: 5px;
+}
+.table-felt__rivet--2 {
+  bottom: 5px;
+  left: 5px;
+}
+.table-felt__rivet--3 {
+  bottom: 6px;
+  right: 6px;
+}
+
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  max-width: 40vw;
+  transition: box-shadow var(--dur-med) var(--ease-out), background var(--dur-med) var(--ease-out);
+}
+
+/* Seats sit at the middle of each of the 4 sides. */
+.seat--bottom {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.seat--top {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.seat--left {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.seat--right {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.seat--turn {
+  box-shadow: 0 0 0 2px var(--gold-300), 0 0 20px rgba(232, 203, 107, 0.55);
+  background: rgba(232, 203, 107, 0.1);
+}
+
+.seat--me {
+  background: rgba(201, 162, 39, 0.12);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+}
+
+.seat__badge-row {
+  display: flex;
+  gap: 4px;
+  min-height: 16px;
+}
+
+.seat__badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: linear-gradient(180deg, var(--gold-300), var(--gold-500));
+  color: var(--ink-900);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.seat__badge--warn {
+  background: var(--ruby-500);
+  color: var(--ivory-100);
+}
+
+.seat__badge--bot {
+  background: linear-gradient(180deg, var(--sapphire-500), #1c3450);
+  color: var(--ivory-100);
+}
+
+.seat__badge--voice {
+  background: rgba(63, 138, 92, 0.35);
+  padding: 1px 5px;
+}
+
+.seat__badge--voice-speaking {
+  background: var(--gold-500);
+  color: var(--ink-900);
+  animation: voice-call-speaking-pulse 0.9s ease-in-out infinite;
+}
+
+.seat__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.seat__waiting {
+  font-size: 0.72rem;
+  color: var(--gold-300);
+}
+
+.seat__ready {
+  font-size: 0.72rem;
+  color: var(--success-500);
+  font-weight: 700;
+}
+
+.arranging-wait-panel {
+  padding: 16px;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.arranging-wait-panel h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+
+.seat__thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.72rem;
+  color: var(--gold-300);
+}
+
+.seat__thinking-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.seat__thinking-dots i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--gold-300);
+  font-style: normal;
+  animation: seat-thinking-bounce 1.1s infinite ease-in-out both;
+}
+
+.seat__thinking-dots i:nth-child(1) {
+  animation-delay: -0.24s;
+}
+.seat__thinking-dots i:nth-child(2) {
+  animation-delay: -0.12s;
+}
+.seat__thinking-dots i:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes seat-thinking-bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.my-hand-panel {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-hand-panel__sets {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.my-set {
+  flex: 0 0 auto;
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  border-radius: 10px;
+  padding: 6px;
+  opacity: 0.55;
+  transition: opacity var(--dur-med) var(--ease-out), border-color var(--dur-med);
+}
+
+.my-set--active {
+  opacity: 1;
+  border-color: var(--gold-500);
+  background: rgba(201, 162, 39, 0.08);
+}
+
+.my-set--done {
+  opacity: 0.3;
+}
+
+.my-set__label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gold-300);
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.my-set__cards {
+  display: flex;
+  gap: 2px;
+}
+
+.play-btn {
+  width: 100%;
+}
+
+.play-waiting {
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  background: var(--ruby-500);
+  color: var(--ivory-100);
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-panel);
+  cursor: pointer;
+  z-index: 50;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.reveal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 35, 26, 0.85);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 16px;
+}
+
+.reveal-panel {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+}
+
+.reveal-tie {
+  color: var(--gold-300);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.reveal-hands {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reveal-hand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  justify-content: space-between;
+}
+
+.reveal-hand--winner {
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid var(--gold-500);
+}
+
+.reveal-hand__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: left;
+}
+
+.reveal-hand__cards {
+  display: flex;
+  gap: 2px;
+}
+
+.reveal-hand__label {
+  font-size: 0.7rem;
+  min-width: 70px;
+  text-align: right;
+}
+
+.reveal-points {
+  font-family: var(--font-display);
+  color: var(--gold-300);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.winner-screen__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.round-summary-panel {
+  max-height: 88vh;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 420px;
+}
+
+.set-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+  text-align: left;
+}
+
+.set-breakdown__row {
+  background: rgba(10, 46, 33, 0.5);
+  border: 1px solid rgba(230, 221, 192, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.set-breakdown__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.set-breakdown__label {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--gold-300);
+  text-transform: uppercase;
+}
+
+.set-breakdown__winner {
+  font-size: 0.85rem;
+}
+
+.set-breakdown__tie-tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink-900);
+  background: var(--gold-300);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.set-breakdown__players {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.set-breakdown__player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.set-breakdown__player-name {
+  font-size: 0.78rem;
+  min-width: 60px;
+  color: var(--ivory-200);
+}
+
+.set-breakdown__player-name--winner {
+  color: var(--gold-300);
+  font-weight: 700;
+}
+
+.set-breakdown__cards {
+  display: flex;
+  gap: 3px;
+}
+
+.seat__played-cards {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 90px;
+}

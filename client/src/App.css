@@ -1,0 +1,83 @@
+.app-root {
+  min-height: 100vh;
+  position: relative;
+}
+
+.waiting-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 24px;
+}
+
+.conn-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--ruby-500);
+  color: var(--ivory-100);
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 4px;
+  z-index: 100;
+}
+
+/* Shared FAB (floating action button) family - used by Settings (top-right)
+   and Chat (bottom-right) so both persistent floating controls share one
+   consistent visual language instead of each screen inventing its own. */
+.fab {
+  position: fixed;
+  z-index: 30;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  min-height: unset;
+  background: rgba(10, 46, 33, 0.8);
+  border: 1.5px solid var(--gold-500);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  font-size: 1.15rem;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.fab:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.25), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+.fab:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.settings-fab {
+  top: env(safe-area-inset-top, 10px);
+  right: 10px;
+}
+
+.screen-fade {
+  animation: screen-fade-in 260ms var(--ease-out) both;
+}
+
+@keyframes screen-fade-in {
+  from {
+    opacity: 0;
+    margin-top: 6px;
+  }
+  to {
+    opacity: 1;
+    margin-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-fade {
+    animation: none;
+  }
+}

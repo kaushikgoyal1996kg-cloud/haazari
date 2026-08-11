@@ -1,0 +1,105 @@
+.hz-card {
+  position: relative;
+  background: linear-gradient(180deg, #fbf7ec, #f3edd9);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(10, 10, 10, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.hz-card--sm {
+  width: 40px;
+  height: 58px;
+  font-size: 0.6rem;
+}
+
+.hz-card--md {
+  width: 58px;
+  height: 84px;
+  font-size: 0.8rem;
+}
+
+.hz-card--lg {
+  width: 76px;
+  height: 110px;
+  font-size: 1rem;
+}
+
+.hz-card--red {
+  color: var(--ruby-500);
+}
+
+.hz-card--black {
+  color: var(--ink-900);
+}
+
+.hz-card__corner {
+  position: absolute;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.hz-card__corner--top {
+  top: 6%;
+  left: 8%;
+}
+
+.hz-card__corner--bottom {
+  bottom: 6%;
+  right: 8%;
+  transform: rotate(180deg);
+}
+
+.hz-card__pip {
+  font-size: 1.8em;
+  opacity: 0.85;
+}
+
+.hz-card--selected {
+  transform: translateY(-10px);
+  box-shadow: 0 0 0 2px var(--gold-300), var(--shadow-card);
+}
+
+.hz-card--dimmed {
+  opacity: 0.45;
+  filter: grayscale(0.3);
+}
+
+.hz-card--back {
+  background: linear-gradient(135deg, var(--felt-500), var(--felt-800));
+  border: 1px solid var(--gold-700);
+}
+
+.hz-card__back-pattern {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  border-radius: 6px;
+  /* Peacock-eye motif - same concentric-ring mark as the app icon and
+     PeacockMotif brand element, so every card reinforces the identity
+     instead of a generic dot-grid pattern. Percentage-based radii scale
+     cleanly across all three card sizes. */
+  background:
+    radial-gradient(
+      circle at center,
+      transparent 35%,
+      rgba(201, 162, 39, 0.6) 36%,
+      rgba(201, 162, 39, 0.6) 39%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at center,
+      transparent 19%,
+      rgba(232, 203, 107, 0.75) 20%,
+      rgba(232, 203, 107, 0.75) 23%,
+      transparent 24%
+    ),
+    radial-gradient(circle at center, rgba(232, 203, 107, 0.9) 0%, rgba(232, 203, 107, 0.9) 9%, transparent 10%);
+  background-repeat: no-repeat;
+}

@@ -1,0 +1,128 @@
+.voice-call-toggle {
+  bottom: 76px;
+  right: 16px;
+  z-index: 39;
+}
+
+.voice-call-toggle--active {
+  background: linear-gradient(180deg, var(--success-500), #2a6b44);
+  border-color: var(--success-500);
+}
+
+.voice-call-toggle__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--gold-500);
+  color: var(--ink-900);
+  font-size: 0.62rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 1.5px solid var(--felt-900);
+}
+
+.voice-call-panel {
+  position: fixed;
+  bottom: 134px;
+  right: 16px;
+  left: 16px;
+  max-width: 320px;
+  margin-left: auto;
+  z-index: 39;
+  padding: 12px;
+}
+
+.voice-call-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  color: var(--gold-300);
+  font-size: 0.85rem;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(230, 221, 192, 0.15);
+  margin-bottom: 8px;
+}
+
+.voice-call-panel__close {
+  min-height: unset;
+  padding: 2px 6px;
+}
+
+.voice-call-panel__join {
+  width: 100%;
+}
+
+.voice-call-panel__actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.voice-call-panel__actions .btn {
+  flex: 1;
+}
+
+.voice-call-panel__leave {
+  background: rgba(166, 48, 59, 0.25);
+  border-color: var(--ruby-500);
+  color: var(--ivory-100);
+}
+
+.voice-call-panel__participants {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voice-call-panel__you,
+.voice-call-panel__participant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 4px 2px;
+}
+
+.voice-call-panel__empty {
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.voice-call-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.voice-call-dot--live {
+  background: var(--success-500);
+}
+
+.voice-call-dot--muted {
+  background: var(--ivory-200);
+  opacity: 0.4;
+}
+
+.voice-call-dot--speaking {
+  background: var(--gold-300);
+  animation: voice-call-speaking-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes voice-call-speaking-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 203, 107, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(232, 203, 107, 0);
+  }
+}
