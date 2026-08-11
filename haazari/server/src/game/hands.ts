@@ -10,15 +10,25 @@ function isSameSuit(cards: Card[]): boolean {
   return cards.every((c) => c.suit === cards[0].suit);
 }
 
-/** Detects a 3-card run, including the special Ace-low A-2-3 case. Returns
- *  the high-card value to use for tie-breaking, or null if not a sequence. */
+/**
+ * Detects a 3-card run, including the special Ace-low A-2-3 case. Returns
+ * the value to use for tie-breaking against other sequences, or null if
+ * not a sequence.
+ *
+ * RULE CLARIFICATION: sequence order from strongest to weakest is
+ * A-K-Q, then A-2-3, then K-Q-J, Q-J-10, ... down to 4-3-2. A-2-3 sits
+ * just below A-K-Q (still showcasing the Ace) but above every other run.
+ * Represented as 13.5 - strictly between the K-Q-J value (13) and the
+ * A-K-Q value (14) - so ordinary numeric comparison places it correctly
+ * without needing a separate category.
+ */
 function threeCardRunHighValue(cards: Card[]): number | null {
   const values = sortedValues(cards); // descending, e.g. [14, 13, 12]
   const [a, b, c] = values;
   if (a === b || b === c) return null; // pairs/trails aren't sequences
-  if (a - b === 1 && b - c === 1) return a; // normal run, e.g. K-Q-J -> 13
-  // Ace-low straight: A,3,2 sorted desc = [14,3,2]
-  if (a === 14 && b === 3 && c === 2) return 3; // A-2-3, high card is the 3
+  if (a - b === 1 && b - c === 1) return a; // normal run, e.g. K-Q-J -> 13, A-K-Q -> 14
+  // Ace-low straight: A,3,2 sorted desc = [14,3,2] - second-strongest sequence.
+  if (a === 14 && b === 3 && c === 2) return 13.5;
   return null;
 }
 

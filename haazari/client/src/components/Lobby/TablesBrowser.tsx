@@ -43,6 +43,8 @@ export function TablesBrowser({ onJoin, onBack, busy, error }: Props) {
 
       {tables !== null && tables.length === 0 && (
         <div className="text-muted tables-browser__empty">
+          <span className="empty-state__icon" aria-hidden="true">🎴</span>
+          <br />
           No open tables right now. Create one and friends can find it here too.
         </div>
       )}

@@ -23,7 +23,11 @@ export function StatsModal({ onClose }: Props) {
         </p>
 
         {rows.length === 0 ? (
-          <p className="text-muted stats-modal__empty">No games recorded yet — finish a game to see your stats here.</p>
+          <p className="text-muted stats-modal__empty">
+            <span className="empty-state__icon" aria-hidden="true">🏆</span>
+            <br />
+            No games recorded yet — finish a game to see your stats here.
+          </p>
         ) : (
           <div className="stats-table">
             <div className="stats-table__header">

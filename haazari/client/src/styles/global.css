@@ -130,3 +130,10 @@ input {
   background: var(--gold-500);
   color: var(--ink-900);
 }
+
+.empty-state__icon {
+  display: inline-block;
+  font-size: 1.6rem;
+  opacity: 0.6;
+  margin-bottom: 6px;
+}

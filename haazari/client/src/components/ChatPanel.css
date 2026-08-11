@@ -1,20 +1,7 @@
 .chat-toggle {
-  position: fixed;
   bottom: 16px;
   right: 16px;
   z-index: 40;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, var(--gold-300), var(--gold-500));
-  border: 2px solid var(--gold-100);
-  box-shadow: var(--shadow-lifted, 0 6px 16px rgba(0, 0, 0, 0.4));
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: unset;
-  padding: 0;
 }
 
 .chat-toggle__badge {
@@ -202,6 +189,13 @@
   color: var(--ivory-100);
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.chat-panel__mic--enable {
+  background: rgba(43, 76, 111, 0.5);
+  color: var(--ivory-100);
+  border: 1px solid var(--sapphire-500);
+  font-size: 0.85rem;
 }
 
 .chat-panel__recording-hint {

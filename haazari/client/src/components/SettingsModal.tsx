@@ -15,6 +15,7 @@ export function SettingsModal({ onClose, onOpenRules, onOpenStats, onLeaveTable 
   const { goToHomeScreen, room } = useGame();
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const { canPromptInstall, installed, isIos, promptInstall } = useInstallPrompt();
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
 
   function toggleSound() {
     const next = !soundOn;
@@ -89,17 +90,37 @@ export function SettingsModal({ onClose, onOpenRules, onOpenStats, onLeaveTable 
             </button>
           )}
 
-          {onLeaveTable && (
+          {onLeaveTable && !confirmingLeave && (
             <button
               className="settings-row settings-row--danger"
-              onClick={() => {
-                onClose();
-                onLeaveTable();
-              }}
+              onClick={() => setConfirmingLeave(true)}
             >
               <span>Leave Table</span>
               <span className="text-muted">›</span>
             </button>
+          )}
+
+          {onLeaveTable && confirmingLeave && (
+            <div className="settings-leave-confirm">
+              <p>
+                A computer player will take over your seat and the game will continue for everyone else. You won't
+                be able to rejoin this game. Leave anyway?
+              </p>
+              <div className="settings-leave-confirm__actions">
+                <button className="btn btn-ghost" onClick={() => setConfirmingLeave(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    onClose();
+                    onLeaveTable();
+                  }}
+                >
+                  Yes, Leave Table
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

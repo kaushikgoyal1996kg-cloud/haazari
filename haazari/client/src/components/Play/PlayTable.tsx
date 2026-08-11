@@ -14,9 +14,8 @@ const SET_LABELS = ['Set 1', 'Set 2', 'Set 3', 'Set 4'];
 const SIDE_LABELS = ['bottom', 'left', 'top', 'right'] as const;
 
 export function PlayTable() {
-  const { room, gameState, myPlayerId, myArrangedSets, playSet, gameError, clearGameError, leaveTable } = useGame();
+  const { room, gameState, myPlayerId, myArrangedSets, playSet, gameError, clearGameError } = useGame();
   const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
-  const [confirmingLeave, setConfirmingLeave] = useState(false);
 
   // Computed safely (never null-unsafe) BEFORE any early return, since
   // hooks must be called unconditionally on every render (Rules of Hooks) -
@@ -77,23 +76,7 @@ export function PlayTable() {
         <div className="play-header__progress text-muted">
           {SET_LABELS[currentSetIdx]} of 4 &middot; {pointsSoFarThisRound}/360 pts awarded
         </div>
-        <button className="play-header__leave-btn" onClick={() => setConfirmingLeave(true)}>
-          Leave Table
-        </button>
       </header>
-
-      {confirmingLeave && (
-        <div className="leave-confirm panel">
-          <p>
-            A computer player will take over your seat and the game will continue for everyone else. You won't be
-            able to rejoin this game. Leave anyway?
-          </p>
-          <div className="leave-confirm__actions">
-            <button className="btn btn-ghost" onClick={() => setConfirmingLeave(false)}>Cancel</button>
-            <button className="btn btn-primary" onClick={leaveTable}>Yes, Leave Table</button>
-          </div>
-        </div>
-      )}
 
       <ScoreStrip room={room} scores={gameState.cumulativeScores} myPlayerId={myPlayerId} />
 

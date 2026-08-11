@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../lib/GameStore';
-import { VoiceRecorder, isVoiceRecordingSupported, MAX_VOICE_DURATION_SEC } from '../lib/voiceRecorder';
+import {
+  VoiceRecorder,
+  isVoiceRecordingSupported,
+  requestMicPermission,
+  getMicPermissionState,
+  MAX_VOICE_DURATION_SEC,
+} from '../lib/voiceRecorder';
 import './ChatPanel.css';
 
 const QUICK_REACTIONS = ['👍', '😂', '🔥', '👏', '😮', '😢', '🎉', '🤔'];
@@ -12,6 +18,7 @@ export function ChatPanel() {
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [micPermission, setMicPermission] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown');
   const listRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<VoiceRecorder | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -26,6 +33,19 @@ export function ChatPanel() {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [chatMessages, open]);
+
+  // Check (without prompting) whether mic permission was already granted in
+  // an earlier session, so returning players go straight to hold-to-record
+  // instead of seeing the "enable" step again every time.
+  useEffect(() => {
+    if (!voiceSupported) return;
+    getMicPermissionState().then((state) => {
+      if (state === 'granted') setMicPermission('granted');
+      else if (state === 'denied') setMicPermission('denied');
+      // 'prompt'/'unknown' -> leave as 'unknown', show the enable step.
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Safety: if the panel closes or unmounts mid-recording, don't leave the mic open.
   useEffect(() => {
@@ -45,6 +65,25 @@ export function ChatPanel() {
     if (!text.trim()) return;
     sendChat(text, 'text');
     setText('');
+  }
+
+  /**
+   * Deliberately a plain TAP, not part of the hold-to-record gesture. The
+   * browser's own "Allow microphone?" popup requires lifting your finger to
+   * tap "Allow," which would cancel a hold-to-record gesture mid-flight -
+   * so permission is requested here, once, up front, and the actual
+   * hold-to-record button only appears afterward, once permission is
+   * already settled (so every real recording's getUserMedia() call
+   * resolves instantly with no popup to interrupt it).
+   */
+  async function handleEnableMic() {
+    setMicPermission('checking');
+    setVoiceError(null);
+    const granted = await requestMicPermission();
+    setMicPermission(granted ? 'granted' : 'denied');
+    if (!granted) {
+      setVoiceError('Microphone access was denied. Check your browser/site settings to allow it, then try again.');
+    }
   }
 
   async function startRecording() {
@@ -95,7 +134,7 @@ export function ChatPanel() {
 
   return (
     <>
-      <button className="chat-toggle" onClick={() => setOpen((o) => !o)} aria-label="Toggle chat">
+      <button className="chat-toggle fab" onClick={() => setOpen((o) => !o)} aria-label="Toggle chat">
         💬
         {!open && unreadChatCount > 0 && (
           <span className="chat-toggle__badge">
@@ -116,7 +155,11 @@ export function ChatPanel() {
 
           <div className="chat-panel__messages" ref={listRef}>
             {chatMessages.length === 0 && (
-              <div className="text-muted chat-panel__empty">No messages yet — say hello!</div>
+              <div className="text-muted chat-panel__empty">
+                <span className="empty-state__icon" aria-hidden="true">💬</span>
+                <br />
+                No messages yet — say hello!
+              </div>
             )}
             {chatMessages.map((m, i) => {
               const isMe = m.playerId === myPlayerId;
@@ -161,15 +204,27 @@ export function ChatPanel() {
               disabled={recording}
             />
             {voiceSupported && !text.trim() ? (
-              <button
-                className={`chat-panel__mic ${recording ? 'chat-panel__mic--active' : ''}`}
-                onPointerDown={startRecording}
-                onPointerUp={() => finishRecording(true)}
-                onPointerLeave={() => recording && finishRecording(false)}
-                aria-label="Hold to record a voice note"
-              >
-                {recording ? `${recordSeconds}s 🔴` : '🎤'}
-              </button>
+              micPermission === 'granted' ? (
+                <button
+                  className={`chat-panel__mic ${recording ? 'chat-panel__mic--active' : ''}`}
+                  onPointerDown={startRecording}
+                  onPointerUp={() => finishRecording(true)}
+                  onPointerLeave={() => recording && finishRecording(false)}
+                  onPointerCancel={() => recording && finishRecording(false)}
+                  aria-label="Hold to record a voice note"
+                >
+                  {recording ? `${recordSeconds}s 🔴` : '🎤'}
+                </button>
+              ) : (
+                <button
+                  className="chat-panel__mic chat-panel__mic--enable"
+                  onClick={handleEnableMic}
+                  disabled={micPermission === 'checking'}
+                  aria-label="Enable microphone for voice messages"
+                >
+                  {micPermission === 'checking' ? '…' : '🎤+'}
+                </button>
+              )
             ) : (
               <button className="btn btn-primary chat-panel__send" disabled={!text.trim()} onClick={handleSend}>
                 Send
@@ -180,6 +235,9 @@ export function ChatPanel() {
             <div className="chat-panel__recording-hint text-muted">
               Recording… release to send, drag away to cancel (max {MAX_VOICE_DURATION_SEC}s)
             </div>
+          )}
+          {voiceSupported && micPermission === 'unknown' && !text.trim() && !recording && (
+            <div className="chat-panel__recording-hint text-muted">Tap 🎤+ once to enable voice messages</div>
           )}
         </div>
       )}

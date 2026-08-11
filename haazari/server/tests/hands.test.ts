@@ -148,3 +148,46 @@ describe('isNoSequenceHand', () => {
     expect(isNoSequenceHand(sets, true)).toBe(false);
   });
 });
+
+describe('Sequence ordering: A-K-Q > A-2-3 > K-Q-J > ... > 4-3-2', () => {
+  it('A-K-Q beats A-2-3', () => {
+    const akq = classifyThreeCardHand([c('A', 'SPADES'), c('K', 'HEARTS'), c('Q', 'DIAMONDS')]);
+    const a23 = classifyThreeCardHand([c('A', 'SPADES'), c('2', 'HEARTS'), c('3', 'DIAMONDS')]);
+    expect(compareThreeCardHands(akq, a23)).toBeGreaterThan(0);
+  });
+
+  it('A-2-3 beats K-Q-J', () => {
+    const a23 = classifyThreeCardHand([c('A', 'SPADES'), c('2', 'HEARTS'), c('3', 'DIAMONDS')]);
+    const kqj = classifyThreeCardHand([c('K', 'SPADES'), c('Q', 'HEARTS'), c('J', 'DIAMONDS')]);
+    expect(compareThreeCardHands(a23, kqj)).toBeGreaterThan(0);
+  });
+
+  it('K-Q-J beats Q-J-10, which beats J-10-9, and so on down to 4-3-2', () => {
+    const runs: [string, [any, any, any]][] = [
+      ['K-Q-J', ['K', 'Q', 'J']],
+      ['Q-J-10', ['Q', 'J', '10']],
+      ['J-10-9', ['J', '10', '9']],
+      ['10-9-8', ['10', '9', '8']],
+      ['9-8-7', ['9', '8', '7']],
+      ['8-7-6', ['8', '7', '6']],
+      ['7-6-5', ['7', '6', '5']],
+      ['6-5-4', ['6', '5', '4']],
+      ['5-4-3', ['5', '4', '3']],
+      ['4-3-2', ['4', '3', '2']],
+    ];
+    const values = runs.map(([, ranks]) =>
+      classifyThreeCardHand([c(ranks[0], 'SPADES'), c(ranks[1], 'HEARTS'), c(ranks[2], 'DIAMONDS')])
+    );
+    for (let i = 0; i < values.length - 1; i++) {
+      expect(compareThreeCardHands(values[i], values[i + 1])).toBeGreaterThan(0);
+    }
+  });
+
+  it('this holds for Pure Sequences (same suit) too, not just mixed-suit Sequences', () => {
+    const akq = classifyThreeCardHand([c('A', 'SPADES'), c('K', 'SPADES'), c('Q', 'SPADES')]);
+    const a23 = classifyThreeCardHand([c('A', 'SPADES'), c('2', 'SPADES'), c('3', 'SPADES')]);
+    const kqj = classifyThreeCardHand([c('K', 'SPADES'), c('Q', 'SPADES'), c('J', 'SPADES')]);
+    expect(compareThreeCardHands(akq, a23)).toBeGreaterThan(0);
+    expect(compareThreeCardHands(a23, kqj)).toBeGreaterThan(0);
+  });
+});

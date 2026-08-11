@@ -35,7 +35,7 @@ function tripleScore(i: number, j: number, k: number, values: number[], suits: n
 
   let runHigh = -1;
   if (a - b === 1 && b - c === 1) runHigh = a;
-  else if (a === 14 && b === 3 && c === 2) runHigh = 3; // ace-low A-2-3
+  else if (a === 14 && b === 3 && c === 2) runHigh = 13.5; // ace-low A-2-3, second-strongest sequence (below A-K-Q, above K-Q-J)
 
   if (runHigh !== -1 && sameSuit) return packScore(4, runHigh);
   if (runHigh !== -1) return packScore(3, runHigh);

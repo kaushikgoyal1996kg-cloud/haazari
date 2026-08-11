@@ -21,34 +21,6 @@
   gap: 14px;
 }
 
-.play-header__leave-btn {
-  background: transparent;
-  border: none;
-  color: var(--ivory-200);
-  opacity: 0.6;
-  font-size: 0.72rem;
-  text-decoration: underline;
-  min-height: unset;
-  padding: 2px 0;
-}
-
-.play-header__leave-btn:hover {
-  opacity: 1;
-}
-
-.leave-confirm {
-  padding: 14px;
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
-.leave-confirm__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
-}
-
 .score-strip {
   display: flex;
   gap: 8px;
@@ -471,4 +443,87 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 6px;
+}
+
+.round-summary-panel {
+  max-height: 88vh;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 420px;
+}
+
+.set-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+  text-align: left;
+}
+
+.set-breakdown__row {
+  background: rgba(10, 46, 33, 0.5);
+  border: 1px solid rgba(230, 221, 192, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.set-breakdown__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.set-breakdown__label {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--gold-300);
+  text-transform: uppercase;
+}
+
+.set-breakdown__winner {
+  font-size: 0.85rem;
+}
+
+.set-breakdown__tie-tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink-900);
+  background: var(--gold-300);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.set-breakdown__players {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.set-breakdown__player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.set-breakdown__player-name {
+  font-size: 0.78rem;
+  min-width: 60px;
+  color: var(--ivory-200);
+}
+
+.set-breakdown__player-name--winner {
+  color: var(--gold-300);
+  font-weight: 700;
+}
+
+.set-breakdown__cards {
+  display: flex;
+  gap: 3px;
 }

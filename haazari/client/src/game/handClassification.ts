@@ -49,11 +49,15 @@ function isSameSuit(cards: Card[]): boolean {
   return cards.every((c) => c.suit === cards[0].suit);
 }
 
+// Sequence order: A-K-Q strongest, then A-2-3, then normal descending
+// order K-Q-J, Q-J-10, ... down to 4-3-2 - matches
+// server/src/game/hands.ts exactly. A-2-3 = 13.5, strictly between K-Q-J
+// (13) and A-K-Q (14).
 function threeCardRunHigh(cards: Card[]): number | null {
   const [a, b, c] = sortedValues(cards);
   if (a === b || b === c) return null;
   if (a - b === 1 && b - c === 1) return a;
-  if (a === 14 && b === 3 && c === 2) return 3; // ace-low A-2-3
+  if (a === 14 && b === 3 && c === 2) return 13.5; // ace-low A-2-3, second-strongest sequence
   return null;
 }
 

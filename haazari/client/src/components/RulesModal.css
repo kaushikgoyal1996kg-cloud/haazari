@@ -89,3 +89,22 @@
   color: var(--gold-300);
   background: rgba(201, 162, 39, 0.14);
 }
+
+.settings-leave-confirm {
+  background: rgba(166, 48, 59, 0.12);
+  border: 1px solid var(--ruby-500);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.settings-leave-confirm p {
+  margin: 0 0 10px;
+}
+
+.settings-leave-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

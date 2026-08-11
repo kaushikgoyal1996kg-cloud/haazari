@@ -1,5 +1,8 @@
 import { useGame } from '../../lib/GameStore';
+import { PlayingCard } from '../Card';
 import './Play.css';
+
+const SET_LABELS = ['Set 1', 'Set 2', 'Set 3', 'Set 4'];
 
 export function RoundSummary() {
   const { room, lastRoundResult, gameState, myPlayerId, startNextRound } = useGame();
@@ -11,7 +14,7 @@ export function RoundSummary() {
 
   return (
     <div className="reveal-overlay">
-      <div className="reveal-panel panel">
+      <div className="reveal-panel panel round-summary-panel">
         {lastRoundResult.dismissed ? (
           <>
             <h2>Round Dismissed</h2>
@@ -25,6 +28,43 @@ export function RoundSummary() {
         ) : (
           <>
             <h2>Round {lastRoundResult.roundNumber} Complete</h2>
+
+            {/* Full breakdown of every sub-round, including Set 4 - this is
+                the permanent record of who won each set and what was
+                played, so it's never missed even if someone looks away
+                during the brief live reveal. */}
+            <div className="set-breakdown">
+              {lastRoundResult.subRounds.map((sr) => (
+                <div key={sr.setIndex} className="set-breakdown__row">
+                  <div className="set-breakdown__header">
+                    <span className="set-breakdown__label">{SET_LABELS[sr.setIndex]}</span>
+                    <span className="set-breakdown__winner">
+                      {sr.wasTie && <span className="set-breakdown__tie-tag">TIE — last played wins</span>}
+                      Winner: <strong>{nameOf(sr.winnerId)}</strong> (+{sr.pointsAwarded} pts)
+                    </span>
+                  </div>
+                  <div className="set-breakdown__players">
+                    {sr.playedSets.map((ps) => (
+                      <div key={ps.playerId} className="set-breakdown__player">
+                        <span
+                          className={`set-breakdown__player-name ${
+                            ps.playerId === sr.winnerId ? 'set-breakdown__player-name--winner' : ''
+                          }`}
+                        >
+                          {nameOf(ps.playerId)}
+                        </span>
+                        <div className="set-breakdown__cards">
+                          {ps.cards.map((c) => (
+                            <PlayingCard key={c.id} card={c} size="sm" />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="reveal-hands">
               {room.players.map((p) => (
                 <div key={p.playerId} className="reveal-hand">

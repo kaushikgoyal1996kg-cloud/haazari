@@ -60,6 +60,14 @@
 //    several moderate chances, since a single strong sub-round is often
 //    enough to cross the line outright. Assumption used: 150 points
 //    (roughly the size of a strong single sub-round's point pool).
+//
+// 7. Sequence order, specifically where A-2-3 (ace-low) ranks:
+//    A-K-Q is the single strongest sequence, then A-2-3 second, then the
+//    normal descending order K-Q-J, Q-J-10, ... down to 4-3-2. A-2-3 sits
+//    just below A-K-Q (it still showcases the Ace) but above every other
+//    run, rather than being the weakest "wheel" straight some other card
+//    games use. Implemented as a tiebreak value of 13.5 - strictly
+//    between K-Q-J's value (13) and A-K-Q's value (14).
 // ============================================================================
 
 import type { Rank, Suit } from './types.js';
