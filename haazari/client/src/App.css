@@ -36,3 +36,14 @@
   padding: 6px 14px;
   font-size: 0.78rem;
 }
+
+.settings-fab {
+  position: fixed;
+  top: env(safe-area-inset-top, 10px);
+  right: 78px;
+  z-index: 30;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 6px;
+  font-size: 1rem;
+}

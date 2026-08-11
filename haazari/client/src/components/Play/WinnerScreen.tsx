@@ -4,9 +4,11 @@ import { AvatarBadge } from '../Lobby/AvatarPicker';
 import './Play.css';
 
 export function WinnerScreen() {
-  const { room, winnerInfo, leaveSession } = useGame();
+  const { room, myPlayerId, winnerInfo, leaveSession, playAgain } = useGame();
   if (!room || !winnerInfo) return null;
 
+  const me = room.players.find((p) => p.playerId === myPlayerId);
+  const isHost = me?.isHost ?? false;
   const winner = room.players.find((p) => p.playerId === winnerInfo.winnerId);
   const sorted = [...room.players].sort(
     (a, b) => (winnerInfo.finalScores[b.playerId] ?? 0) - (winnerInfo.finalScores[a.playerId] ?? 0)
@@ -37,9 +39,17 @@ export function WinnerScreen() {
           ))}
         </div>
 
-        <button className="btn btn-primary" onClick={leaveSession}>
-          Return to Lobby
-        </button>
+        <div className="winner-screen__actions">
+          {isHost && (
+            <button className="btn btn-primary" onClick={playAgain}>
+              Play Again
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={leaveSession}>
+            Return to Lobby
+          </button>
+        </div>
+        {!isHost && <p className="text-muted" style={{ fontSize: '0.78rem' }}>Waiting for the host to start a new game…</p>}
       </div>
     </div>
   );

@@ -7,16 +7,21 @@ import type { PublicRoomInfo, TableSummary } from '../rooms/types.js';
 export interface ClientToServerEvents {
   'room:create': (payload: { playerName: string; avatar?: string }, ack: (res: RoomAck) => void) => void;
   'room:join': (payload: { roomCode: string; playerName: string; avatar?: string }, ack: (res: RoomAck) => void) => void;
+  'room:quickMatch': (payload: { playerName: string; avatar?: string }, ack: (res: RoomAck) => void) => void;
   'room:reconnect': (payload: { token: string }, ack: (res: RoomAck) => void) => void;
   'room:ready': (payload: { ready: boolean }) => void;
   'room:start': () => void;
   'room:listTables': (ack: (res: TablesAck) => void) => void;
+  'room:addBot': () => void;
+  'room:playAgain': () => void;
+  'room:chat': (payload: { message: string; kind: 'text' | 'emoji' | 'voice'; durationSec?: number }) => void;
 
   'game:confirmArrangement': (payload: { cardIdSets: [string[], string[], string[], string[]] }) => void;
   'game:requestSuggestion': (ack: (res: SuggestionAck) => void) => void;
   'game:playSet': () => void;
   'game:requestDismissal': (payload: { reason: DismissalReason }) => void;
   'game:startNextRound': () => void;
+  'game:leaveTable': () => void;
 }
 
 export interface RoomAck {
@@ -46,6 +51,7 @@ export interface TablesAck {
 export interface ServerToClientEvents {
   'room:update': (room: PublicRoomInfo) => void;
   'room:error': (payload: { message: string }) => void;
+  'room:chatMessage': (payload: ChatMessage) => void;
 
   /** Sent ONLY to the individual player's own socket - never broadcast. */
   'game:yourHand': (payload: { hand: Card[] }) => void;
@@ -54,6 +60,16 @@ export interface ServerToClientEvents {
   'game:error': (payload: { message: string }) => void;
   'game:roundComplete': (payload: { result: RoundResult }) => void;
   'game:over': (payload: { winnerId: PlayerId; finalScores: Record<PlayerId, number> }) => void;
+}
+
+export interface ChatMessage {
+  playerId: PlayerId;
+  name: string;
+  avatar: string;
+  message: string;
+  kind: 'text' | 'emoji' | 'voice';
+  durationSec?: number;
+  timestamp: number;
 }
 
 export interface HaazariPublicStatePayload {

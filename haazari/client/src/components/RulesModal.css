@@ -46,3 +46,46 @@
   line-height: 1.5;
   opacity: 0.9;
 }
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: rgba(10, 46, 33, 0.5);
+  border: 1px solid rgba(230, 221, 192, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  color: var(--ivory-100);
+  text-align: left;
+}
+
+.settings-row:hover {
+  border-color: rgba(201, 162, 39, 0.4);
+}
+
+.settings-row--danger {
+  color: var(--ruby-300);
+}
+
+.settings-toggle {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 221, 192, 0.3);
+  color: var(--ivory-200);
+}
+
+.settings-toggle--on {
+  border-color: var(--gold-500);
+  color: var(--gold-300);
+  background: rgba(201, 162, 39, 0.14);
+}

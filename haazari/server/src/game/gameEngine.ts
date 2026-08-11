@@ -9,7 +9,7 @@ import type {
   SubRoundResult,
 } from './types.js';
 import { GAME_RULES } from './rules.js';
-import { createDeck, shuffleDeck, dealCards, seatingOrderFromDealer, calculateSetValue, verifyDeckInvariant } from './deck.js';
+import { createDeck, shuffleDeck, dealCards, seatingOrderFromDealer, calculateSetValue, verifyDeckInvariant, determineInitialDealer } from './deck.js';
 import { validatePlayerArrangement } from './arrangement.js';
 import {
   getClockwisePlayOrder,
@@ -37,6 +37,10 @@ export class HaazariGame {
   roundNumber = 1;
   cumulativeScores: Record<PlayerId, number> = {};
   roundHistory: RoundResult[] = [];
+  /** Populated only when the initial dealer was determined by dealing one
+   *  card each (not when a deterministic dealer was supplied) - exposed so
+   *  the UI can show a "dealing for dealer" reveal if desired. */
+  readonly initialDealerRounds: { playerId: PlayerId; card: Card }[][] | null = null;
 
   private hands: Record<PlayerId, Card[]> = {};
   private arrangements: Record<PlayerId, PlayerArrangement | undefined> = {};
@@ -53,9 +57,16 @@ export class HaazariGame {
     this.roomCode = roomCode;
     this.playersClockwise = [...playersClockwise];
     for (const pid of this.playersClockwise) this.cumulativeScores[pid] = 0;
-    // Dealer selected randomly at game start (Section 6), unless a
+    // Dealer for the very first round is determined by dealing one card to
+    // each player - whoever draws highest deals (Section 6) - unless a
     // deterministic dealer is supplied (e.g. for TEST_MODE).
-    this.dealerId = initialDealerId ?? this.playersClockwise[Math.floor(Math.random() * this.playersClockwise.length)];
+    if (initialDealerId) {
+      this.dealerId = initialDealerId;
+    } else {
+      const result = determineInitialDealer(this.playersClockwise);
+      this.dealerId = result.dealerId;
+      this.initialDealerRounds = result.rounds;
+    }
   }
 
   // --------------------------------------------------------------------

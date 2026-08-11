@@ -17,6 +17,7 @@ export interface PublicPlayerInfo {
   connected: boolean;
   ready: boolean;
   isHost: boolean;
+  isBot: boolean;
 }
 
 export interface PublicRoomInfo {
@@ -31,6 +32,16 @@ export interface TableSummary {
   hostName: string;
   playerCount: number;
   maxPlayers: number;
+}
+
+export interface ChatMessage {
+  playerId: PlayerId;
+  name: string;
+  avatar: string;
+  message: string;
+  kind: 'text' | 'emoji' | 'voice';
+  durationSec?: number;
+  timestamp: number;
 }
 
 export interface HaazariPublicStatePayload {

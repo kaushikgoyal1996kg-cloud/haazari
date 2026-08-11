@@ -49,6 +49,17 @@
 //    receives 0 points for that round (cumulative scores are untouched),
 //    and the dealer STILL rotates clockwise before the next dealer deals a
 //    fresh round. This is the only supported action - VOID_ROUND_ROTATE_DEALER.
+//
+// 6. Endgame arrangement strategy switch (CLOSE_TO_WINNING_THRESHOLD):
+//    When a player's cumulative score is within this many points of
+//    WINNING_SCORE, the auto-arrange suggestion (and bot hands) switch
+//    from the default BALANCED strategy (maximize the weakest set, so you
+//    have a realistic shot at winning several sub-rounds) to a
+//    CONCENTRATED strategy (maximize Set 1 alone) - reasoning: this close
+//    to the finish line, one big near-certain win is worth more than
+//    several moderate chances, since a single strong sub-round is often
+//    enough to cross the line outright. Assumption used: 150 points
+//    (roughly the size of a strong single sub-round's point pool).
 // ============================================================================
 
 import type { Rank, Suit } from './types.js';
@@ -91,6 +102,7 @@ export interface GameRulesConfig {
   SIX_PAIRS_THRESHOLD: number;
   RECONNECT_WINDOW_MS: number;
   TEST_MODE: boolean;
+  CLOSE_TO_WINNING_THRESHOLD: number;
 }
 
 export const GAME_RULES: GameRulesConfig = {
@@ -113,4 +125,5 @@ export const GAME_RULES: GameRulesConfig = {
   SIX_PAIRS_THRESHOLD: 6,
   RECONNECT_WINDOW_MS: 3 * 60 * 1000, // 3 minutes
   TEST_MODE: false,
+  CLOSE_TO_WINNING_THRESHOLD: 150,
 };

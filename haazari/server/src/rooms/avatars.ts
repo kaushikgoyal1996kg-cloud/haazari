@@ -1,6 +1,6 @@
-// A small, curated set of avatar icons themed to fit Haazari's Indian
-// card-table aesthetic. Kept as plain emoji (no image assets needed) so
-// they render everywhere with zero extra network requests.
+// A curated set of avatar icons themed to fit Haazari's Indian card-table
+// aesthetic - symbols plus character faces. Kept as plain emoji (no image
+// assets needed) so they render everywhere with zero extra network requests.
 export const AVATAR_OPTIONS = [
   '🦚', // peacock
   '👑', // crown
@@ -14,6 +14,16 @@ export const AVATAR_OPTIONS = [
   '🎭', // mask
   '🌙', // moon
   '⭐', // star
+  '🤴', // prince
+  '👸', // princess
+  '🧞', // genie
+  '👳', // person wearing turban
+  '🧕', // person with headscarf
+  '🥷', // ninja
+  '🧙', // wizard
+  '🕵️', // detective
+  '🤠', // cowboy
+  '🥸', // disguise face
 ] as const;
 
 export type Avatar = (typeof AVATAR_OPTIONS)[number];

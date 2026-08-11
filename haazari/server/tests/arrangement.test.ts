@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { validatePlayerArrangement, suggestArrangement } from '../src/game/arrangement.js';
+import { validatePlayerArrangement, suggestArrangement, greedyMaxFirstArrangement } from '../src/game/arrangement.js';
 import { createDeck } from '../src/game/deck.js';
+import { classifyThreeCardHand } from '../src/game/hands.js';
+import { classifyFourCardHand } from '../src/game/fourCardRanking.js';
+import { GAME_RULES } from '../src/game/rules.js';
 import type { Card } from '../src/game/types.js';
 
 function c(rank: Card['rank'], suit: Card['suit']): Card {
@@ -154,9 +157,115 @@ describe('suggestArrangement (auto-arrange helper)', () => {
       c('7', 'HEARTS'), c('5', 'SPADES'), c('3', 'DIAMONDS'), c('2', 'CLUBS'),
     ];
     const [s1, s2, s3, s4] = suggestArrangement(hand);
-    // Best possible: should find the Trail of Aces for Set1.
-    expect(s1.filter((c) => c.rank === 'A').length).toBe(3);
     const result = validatePlayerArrangement(hand, [s1, s2, s3, s4]);
     expect(result.valid).toBe(true);
+  });
+
+  it('prefers a BALANCED arrangement over concentrating strength into Set 1 alone', () => {
+    // A hand where naively maximizing Set 1 (the old behavior) would trail
+    // all 4 aces together and leave Sets 2-4 as scraps - but spreading the
+    // aces one-per-set (each with same-suit company) yields a much
+    // stronger MINIMUM set across the board. The balanced algorithm should
+    // find and prefer that spread.
+    const hand: Card[] = [
+      c('A', 'SPADES'), c('A', 'HEARTS'), c('A', 'DIAMONDS'), c('A', 'CLUBS'),
+      c('K', 'SPADES'), c('K', 'HEARTS'),
+      c('Q', 'SPADES'), c('J', 'DIAMONDS'), c('9', 'CLUBS'),
+      c('7', 'HEARTS'), c('5', 'SPADES'), c('3', 'DIAMONDS'), c('2', 'CLUBS'),
+    ];
+
+    const balanced = suggestArrangement(hand);
+    const greedy = greedyMaxFirstArrangement(hand);
+
+    const catsOf = (sets: [Card[], Card[], Card[], Card[]]) => [
+      classifyThreeCardHand(sets[0]).category,
+      classifyThreeCardHand(sets[1]).category,
+      classifyThreeCardHand(sets[2]).category,
+      classifyFourCardHand(sets[3]).category,
+    ];
+
+    const balancedCats = catsOf(balanced);
+    const greedyCats = catsOf(greedy);
+    const balancedWeakest = Math.min(...balancedCats);
+    const greedyWeakest = Math.min(...greedyCats);
+
+    // The whole point: the balanced result's weakest set must be at least
+    // as strong as the greedy result's weakest set (and strictly stronger
+    // for this specific hand, where greedy's leftover cards are weak).
+    expect(balancedWeakest).toBeGreaterThan(greedyWeakest);
+
+    // Still a fully valid arrangement.
+    expect(validatePlayerArrangement(hand, balanced).valid).toBe(true);
+  });
+
+  it('the balanced arrangement never scores worse (by weakest-set + total) than the plain greedy one, across many random hands', () => {
+    let seed = 7;
+    function rand() {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    }
+    function shuffledDeck(): Card[] {
+      const deck = createDeck();
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+    const catsOf = (sets: [Card[], Card[], Card[], Card[]]) => [
+      classifyThreeCardHand(sets[0]).category,
+      classifyThreeCardHand(sets[1]).category,
+      classifyThreeCardHand(sets[2]).category,
+      classifyFourCardHand(sets[3]).category,
+    ];
+
+    for (let t = 0; t < 25; t++) {
+      const hand = shuffledDeck().slice(0, 13);
+      const balanced = suggestArrangement(hand);
+      const greedy = greedyMaxFirstArrangement(hand);
+      const balancedCats = catsOf(balanced);
+      const greedyCats = catsOf(greedy);
+      const balancedScore = Math.min(...balancedCats) * 1000 + balancedCats.reduce((a, b) => a + b, 0);
+      const greedyScore = Math.min(...greedyCats) * 1000 + greedyCats.reduce((a, b) => a + b, 0);
+      expect(balancedScore).toBeGreaterThanOrEqual(greedyScore);
+      expect(validatePlayerArrangement(hand, balanced).valid).toBe(true);
+    }
+  });
+});
+
+describe('suggestArrangement - endgame strategy switch (close to WINNING_SCORE)', () => {
+  const hand: Card[] = [
+    c('A', 'SPADES'), c('A', 'HEARTS'), c('A', 'DIAMONDS'), c('A', 'CLUBS'),
+    c('K', 'SPADES'), c('K', 'HEARTS'),
+    c('Q', 'SPADES'), c('J', 'DIAMONDS'), c('9', 'CLUBS'),
+    c('7', 'HEARTS'), c('5', 'SPADES'), c('3', 'DIAMONDS'), c('2', 'CLUBS'),
+  ];
+
+  it('uses the balanced strategy when far from winning (no score given)', () => {
+    const [s1] = suggestArrangement(hand);
+    // Balanced strategy spreads the aces (Pure Sequence, not a Trail).
+    expect(s1.filter((c) => c.rank === 'A').length).toBeLessThan(3);
+  });
+
+  it('uses the balanced strategy when score is well below the threshold', () => {
+    const [s1] = suggestArrangement(hand, 500); // 500 points needed - far from 150 threshold
+    expect(s1.filter((c) => c.rank === 'A').length).toBeLessThan(3);
+  });
+
+  it('switches to the concentrated strategy once within CLOSE_TO_WINNING_THRESHOLD of winning', () => {
+    const cumulativeScore = GAME_RULES.WINNING_SCORE - GAME_RULES.CLOSE_TO_WINNING_THRESHOLD; // exactly at the boundary
+    const [s1] = suggestArrangement(hand, cumulativeScore);
+    // Concentrated (greedy) strategy hoards all 3 spare aces into the Trail for Set 1.
+    expect(s1.filter((c) => c.rank === 'A').length).toBe(3);
+  });
+
+  it('still switches to concentrated when already past the threshold (e.g. 950/1000)', () => {
+    const [s1] = suggestArrangement(hand, 950);
+    expect(s1.filter((c) => c.rank === 'A').length).toBe(3);
+  });
+
+  it('the concentrated result is still a fully valid arrangement', () => {
+    const arrangement = suggestArrangement(hand, 950);
+    expect(validatePlayerArrangement(hand, arrangement).valid).toBe(true);
   });
 });

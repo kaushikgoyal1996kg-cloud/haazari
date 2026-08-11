@@ -1,9 +1,19 @@
 import type { Server, Socket } from 'socket.io';
 import { RoomManager, RoomManagerError } from '../rooms/roomManager.js';
+import { hasPendingBotAction, performOneBotAction } from '../rooms/botController.js';
 import { HaazariGame } from '../game/gameEngine.js';
 import { suggestArrangement } from '../game/arrangement.js';
 import type { Card, DismissalReason, PlayerId } from '../game/types.js';
 import type { ClientToServerEvents, ServerToClientEvents, HaazariPublicStatePayload } from './events.js';
+
+/** Small pause between individual bot actions so play is visible/legible
+ *  to human players rather than a whole round resolving instantly. */
+const BOT_ACTION_DELAY_MS = 700;
+
+/** Voice notes: cap both duration and encoded size to keep payloads small
+ *  over the websocket connection (base64 adds ~33% overhead over raw audio). */
+const MAX_VOICE_DURATION_SEC = 10;
+const MAX_VOICE_DATA_URL_LENGTH = 700_000; // ~525KB raw audio, comfortably under Socket.IO's 1MB default buffer limit
 
 interface SocketData {
   roomCode?: string;
@@ -36,6 +46,18 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
         const name = sanitizeName(playerName);
         const code = roomCode.trim().toUpperCase();
         const { room, playerId, token } = rooms.joinRoom(code, name, avatar);
+        joinSocketToRoom(socket, room.roomCode, playerId);
+        ack({ ok: true, roomCode: room.roomCode, playerId, token, room: rooms.toPublic(room) });
+        broadcastRoom(io, rooms, room.roomCode);
+      } catch (err) {
+        ack({ ok: false, error: errMessage(err) });
+      }
+    });
+
+    socket.on('room:quickMatch', ({ playerName, avatar }, ack) => {
+      try {
+        const name = sanitizeName(playerName);
+        const { room, playerId, token } = rooms.quickMatch(name, avatar);
         joinSocketToRoom(socket, room.roomCode, playerId);
         ack({ ok: true, roomCode: room.roomCode, playerId, token, room: rooms.toPublic(room) });
         broadcastRoom(io, rooms, room.roomCode);
@@ -82,6 +104,68 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
         room.game = new HaazariGame(room.roomCode, playerIds);
         broadcastRoom(io, rooms, room.roomCode);
         dealAndBroadcast(io, room.game);
+        scheduleBotActions(io, rooms, room.roomCode);
+      });
+    });
+
+    socket.on('room:addBot', () => {
+      withRoom(socket, rooms, (room, playerId) => {
+        rooms.addBot(room.roomCode, playerId);
+        broadcastRoom(io, rooms, room.roomCode);
+      });
+    });
+
+    socket.on('room:playAgain', () => {
+      withRoom(socket, rooms, (room, playerId) => {
+        rooms.resetToLobby(room.roomCode, playerId);
+        broadcastRoom(io, rooms, room.roomCode);
+      });
+    });
+
+    socket.on('room:chat', ({ message, kind, durationSec }) => {
+      withRoom(socket, rooms, (room, playerId) => {
+        const sender = room.players.get(playerId);
+        if (!sender) return;
+
+        let payloadMessage: string;
+        let payloadDuration: number | undefined;
+
+        if (kind === 'voice') {
+          // message is a base64 data URL (audio/webm or audio/ogg) - never
+          // trim it like text (would corrupt the encoding). Cap size/length
+          // instead so nobody can send an oversized payload.
+          const raw = message ?? '';
+          if (!raw.startsWith('data:audio/')) return; // reject anything that isn't actually audio
+          if (raw.length > MAX_VOICE_DATA_URL_LENGTH) {
+            socket.emit('room:error', { message: 'Voice note is too long - please keep it under 10 seconds.' });
+            return;
+          }
+          payloadMessage = raw;
+          payloadDuration = Math.min(Math.max(durationSec ?? 0, 0), MAX_VOICE_DURATION_SEC);
+        } else {
+          const trimmed = (message ?? '').trim().slice(0, 240);
+          if (!trimmed) return;
+          payloadMessage = trimmed;
+        }
+
+        io.to(room.roomCode).emit('room:chatMessage', {
+          playerId,
+          name: sender.name,
+          avatar: sender.avatar,
+          message: payloadMessage,
+          kind: kind === 'emoji' ? 'emoji' : kind === 'voice' ? 'voice' : 'text',
+          durationSec: payloadDuration,
+          timestamp: Date.now(),
+        });
+      });
+    });
+
+    socket.on('game:leaveTable', () => {
+      withGame(socket, rooms, (game, playerId) => {
+        const room = rooms.getRoomOrThrow(roomCodeOf(socket));
+        rooms.convertToBot(room.roomCode, playerId);
+        broadcastRoom(io, rooms, room.roomCode);
+        scheduleBotActions(io, rooms, room.roomCode);
       });
     });
 
@@ -115,6 +199,7 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
         }
         sendPrivateArrangement(io, game, playerId);
         sendPublicGameState(io, roomCodeOf(socket), game);
+        scheduleBotActions(io, rooms, roomCodeOf(socket));
       });
     });
 
@@ -125,7 +210,8 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
         const room = rooms.getRoomOrThrow(roomCode);
         if (!room.game) throw new Error('Game has not started yet.');
         const hand = room.game.getPlayerHand(playerId);
-        const suggestion = suggestArrangement(hand);
+        const cumulativeScore = room.game.cumulativeScores[playerId] ?? 0;
+        const suggestion = suggestArrangement(hand, cumulativeScore);
         ack({ ok: true, cardIdSets: suggestion.map((s) => s.map((c) => c.id)) as [string[], string[], string[], string[]] });
       } catch (err) {
         ack({ ok: false, error: errMessage(err) });
@@ -137,6 +223,7 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
         game.playSet(playerId);
         sendPublicGameState(io, roomCodeOf(socket), game);
         maybeAnnounceRoundOrGameEnd(io, roomCodeOf(socket), game);
+        scheduleBotActions(io, rooms, roomCodeOf(socket));
       });
     });
 
@@ -165,6 +252,7 @@ export function registerSocketHandlers(io: IO, rooms: RoomManager): void {
           return;
         }
         dealAndBroadcast(io, game);
+        scheduleBotActions(io, rooms, room.roomCode);
       });
     });
 
@@ -302,4 +390,33 @@ function maybeAnnounceRoundOrGameEnd(io: IO, roomCode: string, game: HaazariGame
     const winnerId = game.getWinner()!;
     io.to(roomCode).emit('game:over', { winnerId, finalScores: game.cumulativeScores });
   }
+}
+
+/**
+ * Schedules the next pending bot action (if any) after a short delay, then
+ * broadcasts the result and chains to check for further pending actions -
+ * so a room with several bots plays out one visible action at a time
+ * rather than an entire round resolving instantly. Safe to call after any
+ * human action; it's a no-op if the room has no bots or nothing is
+ * currently actionable by a bot. Re-fetches the room by code on each tick
+ * (rather than closing over a stale reference) so it degrades gracefully
+ * if the room is torn down while a delay is pending.
+ */
+function scheduleBotActions(io: IO, rooms: RoomManager, roomCode: string): void {
+  const room = rooms.getRoom(roomCode);
+  if (!room || !room.game || !hasPendingBotAction(room)) return;
+
+  setTimeout(() => {
+    const currentRoom = rooms.getRoom(roomCode);
+    if (!currentRoom || !currentRoom.game) return;
+
+    const acted = performOneBotAction(currentRoom);
+    if (acted) {
+      sendPublicGameState(io, roomCode, currentRoom.game);
+      maybeAnnounceRoundOrGameEnd(io, roomCode, currentRoom.game);
+    }
+    // Chain: check again for more pending bot actions (e.g. the next seat
+    // is also a bot, or this same bot has another arrangement/turn to take).
+    scheduleBotActions(io, rooms, roomCode);
+  }, BOT_ACTION_DELAY_MS);
 }

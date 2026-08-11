@@ -67,14 +67,37 @@ function fourScore(idx: [number, number, number, number], values: number[], suit
 
 const SUIT_CODE: Record<Card['suit'], number> = { SPADES: 0, HEARTS: 1, DIAMONDS: 2, CLUBS: 3 };
 
+// Must match server's GAME_RULES.WINNING_SCORE / CLOSE_TO_WINNING_THRESHOLD
+// (see server/src/game/rules.ts assumption #6) - kept in sync manually
+// since the client doesn't share the server's config module directly.
+const WINNING_SCORE = 1000;
+const CLOSE_TO_WINNING_THRESHOLD = 150;
+
 /**
  * Finds a valid strongest->weakest 3+3+3+4 arrangement for a 13-card hand,
- * maximizing Set 1's strength first, then Set 2, then Set 3, then Set 4.
+ * preferring a BALANCED split over one that maximizes Set 1 alone: Haazari
+ * points come from winning individual sub-rounds (your Set i vs each
+ * opponent's Set i), so a single super-strong Set 1 propped up by three
+ * throwaway sets only gives a real shot at winning one sub-round out of
+ * four. This exhaustively searches every valid partition and scores each
+ * by (weakest set's category, primary) then (total combined category,
+ * tiebreaker) - matching the server's suggestArrangement() philosophy
+ * exactly, just implemented as an exact search here since the packed-score
+ * representation already makes full enumeration fast enough (~15-60ms).
  * Runs synchronously in well under a frame budget - safe to call directly
  * from a button click handler.
+ *
+ * ENDGAME OVERRIDE: if `cumulativeScore` is provided and is within
+ * CLOSE_TO_WINNING_THRESHOLD points of WINNING_SCORE, this switches to
+ * the CONCENTRATED strategy (maximize Set 1 alone) instead - one big
+ * near-certain win is worth more than several moderate chances once a
+ * single strong sub-round could cross the finish line outright.
  */
-export function autoArrange(hand: Card[]): FourSets | null {
+export function autoArrange(hand: Card[], cumulativeScore?: number): FourSets | null {
   if (hand.length !== 13) throw new Error('autoArrange requires exactly 13 cards');
+
+  const concentrated =
+    cumulativeScore !== undefined && WINNING_SCORE - cumulativeScore <= CLOSE_TO_WINNING_THRESHOLD;
 
   const values = hand.map((c) => RANK_VALUE[c.rank]);
   const suits = hand.map((c) => SUIT_CODE[c.suit]);
@@ -82,6 +105,8 @@ export function autoArrange(hand: Card[]): FourSets | null {
 
   let bestScoreKey = -1;
   let bestIdx: { g1: number[]; g2: number[]; g3: number[]; g4: [number, number, number, number] } | null = null;
+
+  const categoryOf = (packedScore: number) => Math.floor(packedScore / 65536);
 
   for (let a = 0; a < n; a++) {
     for (let b = a + 1; b < n; b++) {
@@ -124,7 +149,20 @@ export function autoArrange(hand: Card[]): FourSets | null {
 
                   if (s3 < fScore) continue; // Set4 would out-rank Set3 - invalid
 
-                  const key = ((s1 * 1_100_000 + s2) * 1_100_000 + s3) * 1_100_000 + fScore;
+                  let key: number;
+                  if (concentrated) {
+                    // Endgame: maximize Set 1 alone, then Set 2, then Set 3 (old greedy behavior).
+                    key = ((s1 * 1_100_000 + s2) * 1_100_000 + s3) * 1_100_000 + fScore;
+                  } else {
+                    // Default: balance-first key - weakest category dominates, total
+                    // combined category is the tiebreaker, raw score sum breaks
+                    // any remaining ties.
+                    const cat1 = categoryOf(s1), cat2 = categoryOf(s2), cat3 = categoryOf(s3), catF = categoryOf(fScore);
+                    const weakestCat = Math.min(cat1, cat2, cat3, catF);
+                    const sumCat = cat1 + cat2 + cat3 + catF;
+                    const rawSum = s1 + s2 + s3 + fScore;
+                    key = weakestCat * 100_000_000 + sumCat * 2_000_000 + rawSum;
+                  }
 
                   if (key > bestScoreKey) {
                     bestScoreKey = key;

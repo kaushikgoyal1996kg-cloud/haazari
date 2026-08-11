@@ -12,6 +12,7 @@ import {
   RANK_VALUE,
 } from '../../game/handClassification';
 import './Arrangement.css';
+import { playSelectSound } from '../../lib/sound';
 
 type Location = 'pool' | 0 | 1 | 2 | 3;
 interface Selected {
@@ -40,13 +41,16 @@ interface Props {
   onConfirm: (sets: FourSets) => void;
   onDismiss: (reason: DismissalReason) => void;
   submitError: string | null;
+  cumulativeScore?: number;
 }
 
-export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError }: Props) {
+export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError, cumulativeScore }: Props) {
   const [pool, setPool] = useState<Card[]>(hand);
   const [slots, setSlots] = useState<[Card[], Card[], Card[], Card[]]>([[], [], [], []]);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('rank');
+  const [justDealt, setJustDealt] = useState(true);
+  const isCloseToWinning = cumulativeScore !== undefined && 1000 - cumulativeScore <= 150;
 
   // Reset the board whenever a genuinely new hand arrives (new round dealt).
   const handFingerprint = hand.map((c) => c.id).sort().join(',');
@@ -54,6 +58,7 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError }: P
     setPool(hand);
     setSlots([[], [], [], []]);
     setSelected(null);
+    setJustDealt(true); // play the deal-in animation for this fresh hand
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handFingerprint]);
 
@@ -98,6 +103,8 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError }: P
   }
 
   function handleCardTap(location: Location, card: Card) {
+    playSelectSound();
+    setJustDealt(false); // cards are being handled now - stop the deal-in animation
     if (!selected) {
       setSelected({ location, cardId: card.id });
       return;
@@ -117,7 +124,8 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError }: P
   }
 
   function handleAutoArrange() {
-    const result = autoArrange(hand);
+    setJustDealt(false);
+    const result = autoArrange(hand, cumulativeScore);
     if (result) {
       setSlots(result);
       setPool([]);
@@ -174,10 +182,11 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError }: P
           </div>
         </div>
         <div className="arrange-pool__cards">
-          {displayedPool.map((c) => (
+          {displayedPool.map((c, i) => (
             <button
               key={c.id}
-              className="arrange-card-btn"
+              className={`arrange-card-btn ${justDealt ? 'arrange-card-btn--dealt' : ''}`}
+              style={justDealt ? { animationDelay: `${i * 45}ms` } : undefined}
               onClick={() => handleCardTap('pool', c)}
               aria-pressed={selected?.cardId === c.id}
             >
@@ -244,6 +253,12 @@ export function ArrangementScreen({ hand, onConfirm, onDismiss, submitError }: P
       </div>
 
       {submitError && <div className="error-text arrange-submit-error">{submitError}</div>}
+
+      {isCloseToWinning && (
+        <p className="arrange-endgame-hint text-muted">
+          🏆 You're close to winning — suggestions will now favor one big strong set over a balanced spread.
+        </p>
+      )}
 
       <div className="arrange-actions">
         <button className="btn btn-ghost" onClick={handleReset}>Reset</button>

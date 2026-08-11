@@ -1,5 +1,5 @@
 import type { Card, Rank, Suit } from './types.js';
-import { SUITS, RANKS, TEN_POINT_CARDS, GAME_RULES } from './rules.js';
+import { SUITS, RANKS, TEN_POINT_CARDS, RANK_VALUE, GAME_RULES } from './rules.js';
 
 /** Creates one standard 52-card deck, unshuffled, in a fixed deterministic order. */
 export function createDeck(): Card[] {
@@ -60,6 +60,47 @@ function secureRandom(): number {
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
   return arr[0] / 4294967296;
+}
+
+export interface DealForDealerResult {
+  dealerId: string;
+  /** Every round of one-card-each dealt during the process, in order - the
+   *  final round (index length-1) is the one that produced a unique
+   *  highest card. Useful if the UI ever wants to show a "dealing for
+   *  dealer" animation/reveal rather than just announcing the result. */
+  rounds: { playerId: string; card: Card }[][];
+}
+
+/**
+ * Determines the very first dealer of a game the traditional way: deal one
+ * card to each player, whoever gets the highest card deals (Ace high). If
+ * two or more players tie for highest, only those tied players are dealt
+ * to again (repeat until a single winner emerges) - matching the game's
+ * established principle elsewhere that ties are NEVER broken by suit
+ * (Section 12-13), so this never falls back to a suit ranking either, no
+ * matter how many re-deals it takes.
+ */
+export function determineInitialDealer(
+  playerIdsClockwise: string[],
+  rng: () => number = secureRandom
+): DealForDealerResult {
+  if (playerIdsClockwise.length === 0) {
+    throw new Error('determineInitialDealer requires at least one player');
+  }
+
+  let candidates = [...playerIdsClockwise];
+  const rounds: { playerId: string; card: Card }[][] = [];
+
+  while (candidates.length > 1) {
+    const deck = shuffleDeck(createDeck(), rng);
+    const dealt = candidates.map((playerId, i) => ({ playerId, card: deck[i] }));
+    rounds.push(dealt);
+
+    const maxValue = Math.max(...dealt.map((d) => RANK_VALUE[d.card.rank]));
+    candidates = dealt.filter((d) => RANK_VALUE[d.card.rank] === maxValue).map((d) => d.playerId);
+  }
+
+  return { dealerId: candidates[0], rounds };
 }
 
 /**

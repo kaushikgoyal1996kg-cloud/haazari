@@ -10,6 +10,9 @@ const codeSuffix = customAlphabet('23456789ABCDEFGHJKLMNPQRSTUVWXYZ', 3);
 const playerIdGen = customAlphabet('23456789abcdefghjkmnpqrstuvwxyz', 12);
 const tokenGen = customAlphabet('23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ', 32);
 
+const BOT_NAMES = ['Raja', 'Rani', 'Nawab', 'Maharani', 'Sultan', 'Begum', 'Vazir', 'Zamindar'];
+const BOT_AVATARS = ['🦁', '🐯', '🦜', '🐍', '🪷', '🔱', '🎭', '⭐'];
+
 export class RoomManagerError extends Error {}
 
 /**
@@ -45,6 +48,7 @@ export class RoomManager {
       avatar: isValidAvatar(avatar) ? avatar : DEFAULT_AVATAR,
       connected: true,
       ready: false,
+      isBot: false,
     };
 
     const room: RoomState = {
@@ -76,10 +80,63 @@ export class RoomManager {
       avatar: isValidAvatar(avatar) ? avatar : DEFAULT_AVATAR,
       connected: true,
       ready: false,
+      isBot: false,
     };
     room.players.set(playerId, slot);
     this.tokenIndex.set(token, { roomCode, playerId });
     return { room, playerId, token };
+  }
+
+  /**
+   * Fills one empty seat with a computer player (Section: "Play vs
+   * Computer"). Host-only, lobby-only. Bots are auto-ready immediately
+   * since there's no human to click "I'm Ready". Returns the new bot's
+   * PlayerSlot.
+   */
+  addBot(roomCode: string, requestingPlayerId: PlayerId): PlayerSlot {
+    const room = this.getRoomOrThrow(roomCode);
+    if (room.hostId !== requestingPlayerId) {
+      throw new RoomManagerError('Only the host can add a computer player.');
+    }
+    if (room.status === 'IN_GAME') {
+      throw new RoomManagerError('Game has already started.');
+    }
+    if (room.players.size >= GAME_RULES.PLAYER_COUNT) {
+      throw new RoomManagerError('This room is full.');
+    }
+    const existingBotCount = [...room.players.values()].filter((p) => p.isBot).length;
+    const playerId = playerIdGen();
+    const slot: PlayerSlot = {
+      playerId,
+      token: tokenGen(), // unused for bots, but keeps the type simple/uniform
+      name: BOT_NAMES[existingBotCount % BOT_NAMES.length],
+      avatar: BOT_AVATARS[existingBotCount % BOT_AVATARS.length],
+      connected: true,
+      ready: true,
+      isBot: true,
+    };
+    room.players.set(playerId, slot);
+    return slot;
+  }
+
+  /**
+   * "Leave Table": a connected human player voluntarily hands their seat
+   * to a computer player mid-game (or in the lobby) so the game/room isn't
+   * disrupted for everyone else. The seat keeps its identity (same
+   * playerId, so scores/turn order are untouched) but is marked isBot so
+   * the bot controller starts acting on its behalf.
+   */
+  convertToBot(roomCode: string, playerId: PlayerId): PlayerSlot {
+    const room = this.getRoomOrThrow(roomCode);
+    const slot = room.players.get(playerId);
+    if (!slot) throw new RoomManagerError('Player not in this room.');
+    slot.isBot = true;
+    slot.ready = true;
+    slot.connected = true; // bots are always "present"
+    slot.socketId = undefined;
+    slot.disconnectedAt = undefined;
+    this.tokenIndex.delete(slot.token);
+    return slot;
   }
 
   /** Reconnects a previously-joined player using their persistent token (Section 42). */
@@ -137,6 +194,30 @@ export class RoomManager {
     return room;
   }
 
+  /**
+   * "Play Again": resets a finished room back to the lobby with the same 4
+   * seats (same players, avatars, bots) so the host can start a fresh game
+   * without everyone re-creating/re-joining a room. Host-only; only valid
+   * once the previous game has actually finished (GAME_COMPLETE). Human
+   * players are reset to not-ready (so everyone consciously opts back in);
+   * bots are always auto-ready.
+   */
+  resetToLobby(roomCode: string, requestingPlayerId: PlayerId): RoomState {
+    const room = this.getRoomOrThrow(roomCode);
+    if (room.hostId !== requestingPlayerId) {
+      throw new RoomManagerError('Only the host can start a new game.');
+    }
+    if (room.game?.state !== 'GAME_COMPLETE') {
+      throw new RoomManagerError('The current game has not finished yet.');
+    }
+    room.status = 'LOBBY';
+    room.game = undefined;
+    for (const slot of room.players.values()) {
+      slot.ready = slot.isBot; // bots stay auto-ready; humans opt back in
+    }
+    return room;
+  }
+
   getRoomOrThrow(roomCode: string): RoomState {
     const room = this.rooms.get(roomCode);
     if (!room) throw new RoomManagerError('This room does not exist.');
@@ -155,6 +236,7 @@ export class RoomManager {
       connected: p.connected,
       ready: p.ready,
       isHost: p.playerId === room.hostId,
+      isBot: p.isBot,
     }));
     return {
       roomCode: room.roomCode,
@@ -162,6 +244,24 @@ export class RoomManager {
       players,
       gameState: room.game?.state,
     };
+  }
+
+  /**
+   * "Quick Match": joins the player into the best available open table
+   * (preferring one that's closest to full, so tables fill up and start
+   * rather than everyone scattering into new empty ones), or creates a
+   * fresh room if no open table exists. No room code needed - this is for
+   * "whoever's online can join" random matchmaking.
+   */
+  quickMatch(playerName: string, avatar?: string): { room: RoomState; playerId: PlayerId; token: string } {
+    const candidates = [...this.rooms.values()]
+      .filter((r) => r.status === 'LOBBY' && r.players.size < GAME_RULES.PLAYER_COUNT)
+      .sort((a, b) => b.players.size - a.players.size || a.createdAt - b.createdAt);
+
+    if (candidates.length > 0) {
+      return this.joinRoom(candidates[0].roomCode, playerName, avatar);
+    }
+    return this.createRoom(playerName, avatar);
   }
 
   /**
@@ -187,13 +287,16 @@ export class RoomManager {
     return tables;
   }
 
-  /** Removes rooms that have sat empty (all disconnected) past the reconnect window. Call periodically. */
+  /** Removes rooms that have sat empty (all real humans disconnected) past
+   *  the reconnect window. Bots don't count as "present" for this check -
+   *  a room full of bots and no humans should still get cleaned up. */
   sweepStaleRooms(): void {
     const now = Date.now();
     for (const [code, room] of this.rooms) {
-      const anyoneConnected = [...room.players.values()].some((p) => p.connected);
+      const humans = [...room.players.values()].filter((p) => !p.isBot);
+      const anyoneConnected = humans.some((p) => p.connected);
       if (anyoneConnected) continue;
-      const allExpired = [...room.players.values()].every(
+      const allExpired = humans.every(
         (p) => p.disconnectedAt && now - p.disconnectedAt > GAME_RULES.RECONNECT_WINDOW_MS
       );
       if (allExpired) {

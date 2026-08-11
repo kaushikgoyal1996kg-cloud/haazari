@@ -17,6 +17,10 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: CORS_ORIGIN, methods: ['GET', 'POST'] },
+  // Slightly above Socket.IO's 1MB default to comfortably fit base64-encoded
+  // voice notes (capped at ~700KB in socketHandlers.ts) plus room for
+  // ordinary message overhead.
+  maxHttpBufferSize: 2 * 1024 * 1024,
 });
 
 const rooms = new RoomManager();

@@ -105,33 +105,29 @@ export function describeArrangement(sets: [Card[], Card[], Card[], Card[]]): str
 }
 
 // ============================================================================
-// AUTO-ARRANGE HELPER
+// AUTO-ARRANGE HELPER (balanced strategy)
 //
-// Solving "the best possible 3+3+3+4 split" in general is a large
-// combinatorial search. This uses a greedy algorithm that is provably
-// guaranteed to satisfy the strongest->weakest ordering constraint by
-// construction (not just "usually"):
+// Haazari points come from winning INDIVIDUAL sub-rounds (your Set i vs
+// each opponent's Set i), not from having the single strongest 13-card
+// hand overall. Concentrating all your strength into Set 1 while leaving
+// Sets 2-4 as scraps gives you a realistic shot at winning only ONE
+// sub-round out of four. A more even spread - while still respecting the
+// mandatory strongest->weakest ordering rule - gives a real shot at
+// winning several, which is usually worth more total points.
 //
-//   1. Find the single BEST 3-card hand among all 13 cards -> Set 1.
-//   2. Remove those 3 cards. Find the best 3-card hand among the
-//      remaining 10 -> Set 2.
-//   3. Remove those 3. Find the best 3-card hand among the remaining 7
-//      -> Set 3.
-//   4. The remaining 4 cards become Set 4.
+// This searches a bounded set of VALID strongest->weakest splits (never
+// violates the ordering rule) and picks the one that scores best on a
+// balance-first objective: primarily maximize the WEAKEST set's category
+// (don't leave any one set as a total throwaway), with total combined
+// strength across all 4 sets as the tiebreaker.
 //
-// Why this always satisfies the ordering rule: Set2 is chosen from a
-// STRICT SUBSET of the cards Set1 was chosen from, so the best achievable
-// 3-card hand from that subset can never exceed Set1's value (any hand
-// buildable from the subset was already a candidate when picking Set1).
-// The same logic applies Set2->Set3. Set 4's four leftover cards are a
-// subset of the exact same 7-card pool Set3 was chosen from, so Set4's
-// best-3-of-4 sub-combo (which is itself just a 3-card hand drawn from
-// that pool) can never exceed Set3's value either. No search/backtracking
-// needed - this is a mathematical guarantee, not a heuristic that
-// "usually" works.
-//
-// This is a suggestion, not the only valid arrangement - players remain
-// free to build any other valid split by hand (Section 33).
+// The search is bounded (top-K candidates at each step, not exhaustive
+// over all ~1.2M possible splits) to stay fast enough for real-time bot
+// play. It provably always finds at least one valid candidate - the old
+// pure-greedy "maximize Set 1 first" construction (see
+// greedyMaxFirstArrangement below) is always itself a member of this
+// search space, so the search can never come up empty - but a small
+// direct fallback is kept anyway as a defensive safety net.
 // ============================================================================
 
 function* combinations<T>(arr: T[], k: number): Generator<T[]> {
@@ -159,29 +155,125 @@ function bestThreeCardSubset(cards: Card[]): Card[] {
   return best!;
 }
 
+interface RankedSubset {
+  combo: Card[];
+  value: ReturnType<typeof classifyThreeCardHand>;
+}
+
+/** All 3-card subsets of `cards`, sorted strongest-first, capped to `limit`. */
+function rankedThreeCardSubsets(cards: Card[], limit: number): RankedSubset[] {
+  const scored: RankedSubset[] = [];
+  for (const combo of combinations(cards, 3)) {
+    scored.push({ combo, value: classifyThreeCardHand(combo) });
+  }
+  scored.sort((a, b) => compareThreeCardHands(b.value, a.value));
+  return scored.slice(0, limit);
+}
+
+/** Balance-first score for a complete, already-valid arrangement: weakest
+ *  set's category dominates, total combined category is the tiebreaker,
+ *  and the weakest set's own tiebreak rank breaks any remaining ties. */
+function balanceScore(sets: [Card[], Card[], Card[], Card[]]): number {
+  const values = [
+    classifyThreeCardHand(sets[0]),
+    classifyThreeCardHand(sets[1]),
+    classifyThreeCardHand(sets[2]),
+    classifyFourCardHand(sets[3]),
+  ];
+  const categories = values.map((v) => v.category);
+  const weakest = Math.min(...categories);
+  const sum = categories.reduce((a, b) => a + b, 0);
+  const weakestIdx = categories.indexOf(weakest);
+  const fineTiebreak = (values[weakestIdx].tiebreakRanks[0] ?? 0) / 100;
+  return weakest * 1000 + sum + fineTiebreak;
+}
+
+const SET1_CANDIDATES = 20;
+const SET2_CANDIDATES = 10;
+const SET3_CANDIDATES = 6;
+
 /**
  * Suggests a valid strongest->weakest 3+3+3+4 arrangement for a 13-card
- * hand. Always returns a result that passes validatePlayerArrangement
- * (guaranteed by construction - see algorithm note above), so it's safe to
- * offer as a one-tap "Auto-arrange" action in the UI.
+ * hand, preferring a BALANCED split over one that just maximizes Set 1
+ * (see module header). Always returns a result that passes
+ * validatePlayerArrangement, so it's safe to offer as a one-tap
+ * "Auto-arrange" action, and it's what bots use to arrange their own
+ * hands too.
+ *
+ * ENDGAME OVERRIDE: if `cumulativeScore` is provided and is within
+ * GAME_RULES.CLOSE_TO_WINNING_THRESHOLD points of WINNING_SCORE, this
+ * switches to the CONCENTRATED strategy (maximize Set 1 alone) instead -
+ * see rules.ts assumption #6 for the reasoning. Omit `cumulativeScore`
+ * (or pass a score not yet close to winning) to always get the balanced
+ * default.
  */
-export function suggestArrangement(hand: Card[]): [Card[], Card[], Card[], Card[]] {
+export function suggestArrangement(hand: Card[], cumulativeScore?: number): [Card[], Card[], Card[], Card[]] {
   if (hand.length !== GAME_RULES.CARDS_PER_PLAYER) {
     throw new Error(`suggestArrangement requires a full ${GAME_RULES.CARDS_PER_PLAYER}-card hand`);
   }
-  const remaining = [...hand];
 
+  if (
+    cumulativeScore !== undefined &&
+    GAME_RULES.WINNING_SCORE - cumulativeScore <= GAME_RULES.CLOSE_TO_WINNING_THRESHOLD
+  ) {
+    return greedyMaxFirstArrangement(hand);
+  }
+
+  let best: [Card[], Card[], Card[], Card[]] | null = null;
+  let bestScore = -Infinity;
+
+  for (const { combo: set1, value: set1Value } of rankedThreeCardSubsets(hand, SET1_CANDIDATES)) {
+    const afterSet1 = [...hand];
+    removeCards(afterSet1, set1);
+
+    const set2Candidates = rankedThreeCardSubsets(afterSet1, SET2_CANDIDATES).filter(
+      ({ value }) => compareThreeCardHands(value, set1Value) <= 0
+    );
+
+    for (const { combo: set2, value: set2Value } of set2Candidates) {
+      const afterSet2 = [...afterSet1];
+      removeCards(afterSet2, set2);
+
+      const set3Candidates = rankedThreeCardSubsets(afterSet2, SET3_CANDIDATES).filter(
+        ({ value }) => compareThreeCardHands(value, set2Value) <= 0
+      );
+
+      for (const { combo: set3, value: set3Value } of set3Candidates) {
+        const set4 = [...afterSet2];
+        removeCards(set4, set3);
+        if (compareThreeCardHands(classifyFourCardHand(set4), set3Value) > 0) continue; // set4 can't out-rank set3
+
+        const candidate: [Card[], Card[], Card[], Card[]] = [set1, set2, set3, set4];
+        const score = balanceScore(candidate);
+        if (score > bestScore) {
+          bestScore = score;
+          best = candidate;
+        }
+      }
+    }
+  }
+
+  return best ?? greedyMaxFirstArrangement(hand);
+}
+
+/**
+ * Fallback only: the original "maximize Set 1, then Set 2, then Set 3"
+ * construction. Mathematically guaranteed to produce a valid arrangement,
+ * used only if the bounded balanced search above somehow finds nothing -
+ * which shouldn't happen in practice, since this exact construction is
+ * always itself a member of that search space. Exported (in addition to
+ * being used internally as a fallback) so tests/tools can directly compare
+ * "balanced" vs "maximize Set 1 only" behavior.
+ */
+export function greedyMaxFirstArrangement(hand: Card[]): [Card[], Card[], Card[], Card[]] {
+  const remaining = [...hand];
   const set1 = bestThreeCardSubset(remaining);
   removeCards(remaining, set1);
-
   const set2 = bestThreeCardSubset(remaining);
   removeCards(remaining, set2);
-
   const set3 = bestThreeCardSubset(remaining);
   removeCards(remaining, set3);
-
-  const set4 = remaining; // whatever's left (exactly 4 cards)
-
+  const set4 = remaining;
   return [set1, set2, set3, set4];
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGame } from '../../lib/GameStore';
 import { PeacockMotif } from '../PeacockMotif';
+import { InstallBanner } from '../InstallBanner';
 import { AvatarPicker } from './AvatarPicker';
 import { TablesBrowser } from './TablesBrowser';
 import { AVATAR_OPTIONS } from '../../game/avatars';
@@ -9,7 +10,7 @@ import './Lobby.css';
 type Mode = 'name' | 'menu' | 'create' | 'join' | 'browse';
 
 export function Landing() {
-  const { createRoom, joinRoom, roomError } = useGame();
+  const { createRoom, joinRoom, quickMatch, roomError } = useGame();
   const [mode, setMode] = useState<Mode>('name');
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string>(AVATAR_OPTIONS[0]);
@@ -30,11 +31,18 @@ export function Landing() {
     setBusy(false);
   }
 
+  async function handleQuickMatch() {
+    setBusy(true);
+    await quickMatch(name.trim(), avatar);
+    setBusy(false);
+  }
+
   return (
     <div className="landing">
       <PeacockMotif />
       <h1 className="wordmark landing__title">Haazari</h1>
       <p className="text-muted landing__tagline">A four-player card game of sets and strategy</p>
+      <InstallBanner />
 
       {mode === 'name' && (
         <div className="landing__form panel">
@@ -54,7 +62,10 @@ export function Landing() {
 
       {mode === 'menu' && (
         <div className="landing__actions">
-          <button className="btn btn-primary" disabled={busy} onClick={handleCreate}>
+          <button className="btn btn-primary" disabled={busy} onClick={handleQuickMatch}>
+            🎲 Quick Match
+          </button>
+          <button className="btn" disabled={busy} onClick={handleCreate}>
             Create Game
           </button>
           <button className="btn" onClick={() => setMode('join')}>Join by Code</button>

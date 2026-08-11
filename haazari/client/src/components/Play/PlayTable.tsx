@@ -2,15 +2,29 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../../lib/GameStore';
 import { PlayingCard, CardBack } from '../Card';
 import { AvatarBadge } from '../Lobby/AvatarPicker';
+import { playCardPlaySound, playRevealSound, playPointsSound } from '../../lib/sound';
 import { classifySet, labelFor, setValue } from '../../game/handClassification';
+import { useWakeLock } from '../../lib/useWakeLock';
 import type { PlayerId } from '../../game/types';
 import './Play.css';
 
 const SET_LABELS = ['Set 1', 'Set 2', 'Set 3', 'Set 4'];
+// Seats sit at the middle of each of the 4 sides, in clockwise order
+// starting from you (bottom) - matches the clockwise turn order (seatOrder).
+const SIDE_LABELS = ['bottom', 'left', 'top', 'right'] as const;
 
 export function PlayTable() {
-  const { room, gameState, myPlayerId, myArrangedSets, playSet, gameError, clearGameError } = useGame();
+  const { room, gameState, myPlayerId, myArrangedSets, playSet, gameError, clearGameError, leaveTable } = useGame();
   const [dismissedResultKey, setDismissedResultKey] = useState<string | null>(null);
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
+
+  // Computed safely (never null-unsafe) BEFORE any early return, since
+  // hooks must be called unconditionally on every render (Rules of Hooks) -
+  // keeps the phone screen from auto-locking while it's actually your turn.
+  const safePlayOrder = gameState?.currentPlayOrder ?? [];
+  const safePlayedCount = gameState?.playersPlayedThisSubRound.length ?? 0;
+  const isMyTurnForWakeLock = !!myPlayerId && safePlayOrder[safePlayedCount] === myPlayerId;
+  useWakeLock(isMyTurnForWakeLock);
 
   if (!room || !gameState || !myPlayerId) return null;
 
@@ -20,7 +34,6 @@ export function PlayTable() {
     myIndex === -1
       ? allIds
       : [0, 1, 2, 3].map((offset) => allIds[(myIndex + offset) % allIds.length]);
-  const seatLabel = ['bottom', 'left', 'top', 'right'] as const;
   const nameOf = (pid: PlayerId) => room.players.find((p) => p.playerId === pid)?.name ?? pid;
 
   const currentSetIdx = gameState.currentSetIndex;
@@ -43,6 +56,13 @@ export function PlayTable() {
     return () => clearTimeout(t);
   }, [showReveal, resultKey]);
 
+  useEffect(() => {
+    if (!resultKey || !latestResult) return;
+    playRevealSound();
+    if (latestResult.winnerId === myPlayerId) playPointsSound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultKey]);
+
   const myCurrentSetCards = myArrangedSets ? myArrangedSets[currentSetIdx] : null;
   const pointsSoFarThisRound = gameState.subRoundResultsThisRound.reduce((s, r) => s + r.pointsAwarded, 0);
 
@@ -57,34 +77,65 @@ export function PlayTable() {
         <div className="play-header__progress text-muted">
           {SET_LABELS[currentSetIdx]} of 4 &middot; {pointsSoFarThisRound}/360 pts awarded
         </div>
+        <button className="play-header__leave-btn" onClick={() => setConfirmingLeave(true)}>
+          Leave Table
+        </button>
       </header>
+
+      {confirmingLeave && (
+        <div className="leave-confirm panel">
+          <p>
+            A computer player will take over your seat and the game will continue for everyone else. You won't be
+            able to rejoin this game. Leave anyway?
+          </p>
+          <div className="leave-confirm__actions">
+            <button className="btn btn-ghost" onClick={() => setConfirmingLeave(false)}>Cancel</button>
+            <button className="btn btn-primary" onClick={leaveTable}>Yes, Leave Table</button>
+          </div>
+        </div>
+      )}
 
       <ScoreStrip room={room} scores={gameState.cumulativeScores} myPlayerId={myPlayerId} />
 
       <div className="table-felt">
+        <div className="table-felt__base" aria-hidden="true" />
+        <div className="table-felt__quilt" aria-hidden="true" />
+        <div className="table-felt__vignette" aria-hidden="true" />
+        <div className="table-felt__emblem" aria-hidden="true">♠</div>
+        {[0, 1, 2, 3].map((corner) => (
+          <span key={corner} className={`table-felt__rivet table-felt__rivet--${corner}`} aria-hidden="true" />
+        ))}
         {seatOrder.map((pid, i) => {
-          const pos = seatLabel[i];
+          const side = SIDE_LABELS[i];
+          const isMe = pid === myPlayerId;
           const isDealer = pid === gameState.dealerId;
           const isTurn = pid === nextToPlay;
           const hasPlayed = played.has(pid);
           const info = room.players.find((p) => p.playerId === pid);
           return (
-            <div key={pid} className={`seat seat--${pos} ${isTurn ? 'seat--turn' : ''}`}>
+            <div key={pid} className={`seat seat--${side} ${isMe ? 'seat--me' : ''} ${isTurn ? 'seat--turn' : ''}`}>
               <div className="seat__badge-row">
                 {isDealer && <span className="seat__badge">Dealer</span>}
-                {info && !info.connected && <span className="seat__badge seat__badge--warn">Away</span>}
+                {info?.isBot && <span className="seat__badge seat__badge--bot">🤖 Bot</span>}
+                {info && !info.connected && !info.isBot && <span className="seat__badge seat__badge--warn">Away</span>}
               </div>
-              {info && <AvatarBadge avatar={info.avatar} size={pos === 'bottom' ? 'lg' : 'md'} />}
+              {info && <AvatarBadge avatar={info.avatar} size={isMe ? 'lg' : 'md'} ring />}
               <div className="seat__name">
                 {nameOf(pid)}
-                {pid === myPlayerId && ' (you)'}
+                {isMe && ' (you)'}
               </div>
               <div className="seat__status">
-                {pos !== 'bottom' &&
+                {!isMe &&
                   (hasPlayed ? (
                     <CardBack size="sm" />
                   ) : isTurn ? (
-                    <span className="seat__waiting">Playing…</span>
+                    info?.isBot ? (
+                      <span className="seat__thinking">
+                        Thinking<span className="seat__thinking-dots"><i /><i /><i /></span>
+                      </span>
+                    ) : (
+                      <span className="seat__waiting">Playing…</span>
+                    )
                   ) : (
                     <span className="text-muted">Waiting</span>
                   ))}
@@ -112,7 +163,7 @@ export function PlayTable() {
         </div>
 
         {isMyTurn && myCurrentSetCards && (
-          <button className="btn btn-primary play-btn" onClick={playSet}>
+          <button className="btn btn-primary play-btn" onClick={() => { playCardPlaySound(); playSet(); }}>
             Play {SET_LABELS[currentSetIdx]} ({setValue(myCurrentSetCards)} pts)
           </button>
         )}

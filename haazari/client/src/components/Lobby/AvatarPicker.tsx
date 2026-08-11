@@ -25,7 +25,16 @@ export function AvatarPicker({ value, onChange }: Props) {
   );
 }
 
-/** Small read-only avatar badge used throughout the lobby/table/scoreboard. */
-export function AvatarBadge({ avatar, size = 'md' }: { avatar: string; size?: 'sm' | 'md' | 'lg' }) {
-  return <span className={`avatar-badge avatar-badge--${size}`}>{avatar}</span>;
+/** Small read-only avatar badge used throughout the lobby/table/scoreboard.
+ *  `ring` adds a premium brass-medallion frame (used at the table seats). */
+export function AvatarBadge({
+  avatar,
+  size = 'md',
+  ring = false,
+}: {
+  avatar: string;
+  size?: 'sm' | 'md' | 'lg';
+  ring?: boolean;
+}) {
+  return <span className={`avatar-badge avatar-badge--${size} ${ring ? 'avatar-badge--ring' : ''}`}>{avatar}</span>;
 }

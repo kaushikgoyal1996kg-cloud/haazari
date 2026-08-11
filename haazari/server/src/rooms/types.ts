@@ -4,7 +4,7 @@ import type { HaazariGame } from '../game/gameEngine.js';
 export interface PlayerSlot {
   playerId: PlayerId;
   /** Secret token the client stores (e.g. in localStorage) and presents to
-   *  reconnect - never sent to other players. */
+   *  reconnect - never sent to other players. Bots have no real token. */
   token: string;
   name: string;
   avatar: string;
@@ -12,6 +12,8 @@ export interface PlayerSlot {
   ready: boolean;
   socketId?: string;
   disconnectedAt?: number;
+  /** True if this seat is (or has become, via "Leave Table") computer-controlled. */
+  isBot: boolean;
 }
 
 export interface RoomState {
@@ -31,6 +33,7 @@ export interface PublicPlayerInfo {
   connected: boolean;
   ready: boolean;
   isHost: boolean;
+  isBot: boolean;
 }
 
 export interface PublicRoomInfo {

@@ -102,6 +102,19 @@
   font-size: 1.8rem;
 }
 
+/* Medallion ring treatment - used for avatars seated at the table, like a
+   small brass coin/chip frame rather than a bare floating emoji. */
+.avatar-badge--ring {
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(232, 203, 107, 0.22), rgba(10, 46, 33, 0.55) 70%);
+  border: 1.5px solid var(--gold-500);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.35);
+  padding: 0.32em;
+}
+
 .tables-browser {
   max-width: 420px;
 }
@@ -230,6 +243,12 @@
   border-radius: var(--radius-pill);
   padding: 1px 6px;
   margin-left: 6px;
+}
+
+.room-lobby__host-tag--bot {
+  color: var(--ivory-100);
+  border-color: var(--sapphire-500);
+  background: rgba(43, 76, 111, 0.4);
 }
 
 .room-lobby__dot {

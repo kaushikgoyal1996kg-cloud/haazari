@@ -3,11 +3,12 @@ import { AvatarBadge } from './AvatarPicker';
 import './Lobby.css';
 
 export function RoomLobby() {
-  const { room, myPlayerId, setReady, startGame, leaveSession } = useGame();
+  const { room, myPlayerId, setReady, startGame, addBot, leaveSession } = useGame();
   if (!room) return null;
 
   const me = room.players.find((p) => p.playerId === myPlayerId);
   const isHost = me?.isHost ?? false;
+  const openSeats = 4 - room.players.length;
   const allReady = room.players.length === 4 && room.players.every((p) => p.ready);
 
   return (
@@ -31,10 +32,11 @@ export function RoomLobby() {
                   <AvatarBadge avatar={p.avatar} size="md" />
                   <span className="room-lobby__name">
                     {p.name} {p.isHost && <span className="room-lobby__host-tag">Host</span>}
+                    {p.isBot && <span className="room-lobby__host-tag room-lobby__host-tag--bot">🤖 Bot</span>}
                     {p.playerId === myPlayerId && ' (you)'}
                   </span>
                   <span className="text-muted">
-                    {!p.connected ? 'Disconnected' : p.ready ? 'Ready' : 'Waiting'}
+                    {p.isBot ? 'Ready' : !p.connected ? 'Disconnected' : p.ready ? 'Ready' : 'Waiting'}
                   </span>
                 </>
               ) : (
@@ -49,6 +51,11 @@ export function RoomLobby() {
         {me && (
           <button className="btn" onClick={() => setReady(!me.ready)}>
             {me.ready ? 'Not Ready' : "I'm Ready"}
+          </button>
+        )}
+        {isHost && openSeats > 0 && (
+          <button className="btn btn-ghost" onClick={addBot}>
+            🤖 Add Computer Player {openSeats > 0 && `(${openSeats} open seat${openSeats > 1 ? 's' : ''})`}
           </button>
         )}
         {isHost && (
